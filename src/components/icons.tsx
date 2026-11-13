@@ -39,22 +39,10 @@ export function Icon({ name, className }: { name: IconKey; className?: string })
 
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="currentColor" />
-      <path
-        d="M9.5 11h8a4.5 4.5 0 0 1 0 9H14"
-        fill="none"
-        stroke="var(--color-ink)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M19.2 21.4 23 25.2"
-        fill="none"
-        stroke="var(--color-ink)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-    </svg>
+    <img
+      src="/logo.png"
+      alt="Click"
+      className={`${className ?? ""} rounded-lg object-cover`}
+    />
   );
 }
