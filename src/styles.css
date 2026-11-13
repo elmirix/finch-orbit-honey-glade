@@ -66,7 +66,82 @@
   }
 }
 
+
 @layer components {
+  /* Настоящее матовое стекло */
+  .card,
+  .bg-navy-2,
+  .bg-card {
+    background: rgba(17, 27, 43, 0.78) !important;
+    backdrop-filter: blur(32px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(110%) !important;
+    color: var(--color-ink);
+    border: 1px solid rgba(255, 255, 255, 0.09) !important;
+    box-shadow:
+      0 12px 35px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
+  }
+
+  .card {
+    border-radius: var(--radius-card);
+  }
+
+  .card-hover {
+    transition:
+      border-color 220ms ease,
+      transform 220ms ease,
+      background 220ms ease,
+      box-shadow 220ms ease;
+  }
+
+  .card-hover:hover {
+    background: rgba(24, 38, 57, 0.84) !important;
+    border-color: rgba(100, 255, 218, 0.24) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28) !important;
+  }
+
+  /* Матовая шапка и модальные окна */
+  .glass-panel,
+  header,
+  nav {
+    background: rgba(8, 17, 31, 0.82) !important;
+    backdrop-filter: blur(30px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(110%) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .glass,
+  .glass-card {
+    background: rgba(17, 27, 43, 0.78);
+    backdrop-filter: blur(32px) saturate(110%);
+    -webkit-backdrop-filter: blur(32px) saturate(110%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow:
+      0 12px 35px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  }
+
+  .glass-button {
+    background: rgba(255, 255, 255, 0.055);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .tap {
+    transition: scale 150ms ease-out;
+  }
+
+  .tap:active:not(:disabled) {
+    scale: 0.96;
+  }
+
+  .page-enter {
+    animation: page-enter 280ms ease-out;
+  }
+}
+
   /* Эффект жидкого стекла iOS для всех карточек */
   .card,
   .bg-navy-2,
@@ -131,7 +206,7 @@
   .page-enter {
     animation: page-enter 280ms ease-out;
   }
-}
+
 
 @keyframes page-enter {
   from {
