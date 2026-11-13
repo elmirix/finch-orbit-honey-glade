@@ -1,12 +1,36 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { RegisterModal } from "@/components/RegisterModal";
+
+const examLinks = [
+  {
+    id: "ort",
+    title: "ОРТ",
+    subtitle: "Общереспубликанское тестирование",
+    to: "/ort",
+  },
+  {
+    id: "sat",
+    title: "SAT",
+    subtitle: "Scholastic Assessment Test",
+    to: "/sat",
+  },
+  {
+    id: "ielts",
+    title: "IELTS",
+    subtitle: "Международный экзамен по английскому",
+    to: "/ielts",
+  },
+];
 
 export function MobileNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExamsOpen, setIsExamsOpen] = useState(false);
 
   const handleProtectedClick = (e: React.MouseEvent) => {
+    setIsExamsOpen(false);
     const user = localStorage.getItem("click_user");
     if (!user) {
       e.preventDefault();
@@ -24,22 +48,87 @@ export function MobileNav() {
 
   return (
     <>
+      {/* Затемнение фона при открытом меню экзаменов */}
+      <AnimatePresence>
+        {isExamsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsExamsOpen(false)}
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Всплывающая панель выбора экзамена */}
+      <AnimatePresence>
+        {isExamsOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.96 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed right-3 bottom-20 left-3 z-40 mx-auto max-w-md rounded-2xl border border-line-dark bg-[#0A192F]/95 p-3 shadow-2xl backdrop-blur-md md:hidden"
+          >
+            <div className="mb-2 flex items-center justify-between px-2">
+              <span className="text-xs font-semibold tracking-wider text-teal uppercase">
+                Выберите экзамен
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsExamsOpen(false)}
+                className="text-xs text-slate hover:text-mist"
+              >
+                Закрыть ✕
+              </button>
+            </div>
+
+            <div className="grid gap-2">
+              {examLinks.map((exam) => {
+                const active = pathname.startsWith(exam.to);
+                return (
+                  <Link
+                    key={exam.id}
+                    to={exam.to}
+                    onClick={() => setIsExamsOpen(false)}
+                    className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 transition-colors ${
+                      active
+                        ? "border-teal bg-teal/15 text-mist"
+                        : "border-line-dark bg-[#050B14]/70 text-mist hover:border-teal/50"
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">{exam.title}</p>
+                      <p className="text-xs text-slate">{exam.subtitle}</p>
+                    </div>
+                    <span className="text-sm font-bold text-teal">→</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Нижняя фиксированная навигация */}
       <nav
         aria-label="Мобильная навигация"
-        className="fixed right-0 bottom-0 left-0 z-40 border-t border-line-dark bg-[#050B14]/90 px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-md md:hidden"
+        className="fixed right-0 bottom-0 left-0 z-40 border-t border-line-dark bg-[#050B14]/95 px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-md md:hidden"
       >
         <ul className="mx-auto flex max-w-md items-center justify-around">
           {/* Главная */}
           <li className="flex-1">
             <Link
               to="/"
+              onClick={() => setIsExamsOpen(false)}
               className={`flex flex-col items-center justify-center gap-1 rounded-xl py-1 text-[11px] font-medium transition-colors ${
-                isHome ? "text-teal" : "text-slate hover:text-mist"
+                isHome && !isExamsOpen ? "text-teal" : "text-slate hover:text-mist"
               }`}
             >
               <span
                 className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-                  isHome ? "bg-teal/15 text-teal" : ""
+                  isHome && !isExamsOpen ? "bg-teal/15 text-teal" : ""
                 }`}
               >
                 <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -50,17 +139,18 @@ export function MobileNav() {
             </Link>
           </li>
 
-          {/* Экзамены (ведёт к ОРТ по умолчанию или на треки) */}
+          {/* Экзамены (открывает выбор ОРТ / SAT / IELTS) */}
           <li className="flex-1">
-            <Link
-              to="/ort"
-              className={`flex flex-col items-center justify-center gap-1 rounded-xl py-1 text-[11px] font-medium transition-colors ${
-                isExams ? "text-teal" : "text-slate hover:text-mist"
+            <button
+              type="button"
+              onClick={() => setIsExamsOpen((prev) => !prev)}
+              className={`flex w-full flex-col items-center justify-center gap-1 rounded-xl py-1 text-[11px] font-medium transition-colors ${
+                isExams || isExamsOpen ? "text-teal" : "text-slate hover:text-mist"
               }`}
             >
               <span
                 className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-                  isExams ? "bg-teal/15 text-teal" : ""
+                  isExams || isExamsOpen ? "bg-teal/15 text-teal" : ""
                 }`}
               >
                 <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -68,7 +158,7 @@ export function MobileNav() {
                 </svg>
               </span>
               <span>Экзамены</span>
-            </Link>
+            </button>
           </li>
 
           {/* Кабинет */}
@@ -77,12 +167,12 @@ export function MobileNav() {
               to="/dashboard"
               onClick={handleProtectedClick}
               className={`flex flex-col items-center justify-center gap-1 rounded-xl py-1 text-[11px] font-medium transition-colors ${
-                isDashboard ? "text-teal" : "text-slate hover:text-mist"
+                isDashboard && !isExamsOpen ? "text-teal" : "text-slate hover:text-mist"
               }`}
             >
               <span
                 className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-                  isDashboard ? "bg-teal/15 text-teal" : ""
+                  isDashboard && !isExamsOpen ? "bg-teal/15 text-teal" : ""
                 }`}
               >
                 <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -99,12 +189,12 @@ export function MobileNav() {
               to="/profile"
               onClick={handleProtectedClick}
               className={`flex flex-col items-center justify-center gap-1 rounded-xl py-1 text-[11px] font-medium transition-colors ${
-                isProfile ? "text-teal" : "text-slate hover:text-mist"
+                isProfile && !isExamsOpen ? "text-teal" : "text-slate hover:text-mist"
               }`}
             >
               <span
                 className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-                  isProfile ? "bg-teal/15 text-teal" : ""
+                  isProfile && !isExamsOpen ? "bg-teal/15 text-teal" : ""
                 }`}
               >
                 <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
