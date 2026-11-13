@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 
 export function AnimatedBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -11,76 +10,134 @@ export function AnimatedBackground() {
     if (!ctx) return;
 
     let animationFrameId: number;
-    let time = 0;
+    let particles: Particle[] = [];
+
+    // Настройки вихря
+    const particleCount = 400; // Много частиц для плотной воронки
+    const maxRadius = Math.max(window.innerWidth, window.innerHeight) * 0.8;
+
+    // Центр вихря (плавно следует за мышкой)
+    let vortexX = window.innerWidth / 2;
+    let vortexY = window.innerHeight / 2;
+    let targetX = window.innerWidth / 2;
+    let targetY = window.innerHeight / 2;
 
     const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current.x = e.clientX;
-      mouseRef.current.y = e.clientY;
+      targetX = e.clientX;
+      targetY = e.clientY;
     };
+
     window.addEventListener('mousemove', handleMouseMove);
 
-    const resize = () => {
+    class Particle {
+      angle: number;
+      distance: number;
+      speed: number;
+      size: number;
+      color: string;
+
+      constructor() {
+        // Случайный угол (от 0 до 2Пи)
+        this.angle = Math.random() * Math.PI * 2;
+        // Случайное расстояние от центра (от 50 до maxRadius)
+        this.distance = Math.random() * maxRadius + 50;
+        // Скорость вращения (чем ближе к центру, тем быстрее)
+        this.speed = (Math.random() * 0.02 + 0.01);
+        this.size = Math.random() * 1.5 + 0.5;
+        
+        // Цвета: бирюзовый, синий и белый
+        const colors = [
+          'rgba(45, 212, 191, 0.8)', // Teal
+          'rgba(96, 165, 250, 0.8)', // Blue
+          'rgba(255, 255, 255, 0.6)' // White
+        ];
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      update() {
+        // Вращение (закручивание)
+        this.angle += this.speed * (100 / this.distance); // Ускоряем ближе к центру
+        
+        // Притяжение к центру (падение в воронку)
+        this.distance -= 1.5;
+
+        // Если частица достигла центра, возрождаем её на краю
+        if (this.distance < 10) {
+          this.distance = maxRadius;
+          this.angle = Math.random() * Math.PI * 2;
+        }
+      }
+
+      draw() {
+        if (!ctx) return;
+        
+        // Вычисляем координаты частицы относительно центра вихря
+        const x = vortexX + Math.cos(this.angle) * this.distance;
+        const y = vortexY + Math.sin(this.angle) * this.distance;
+
+        ctx.beginPath();
+        ctx.arc(x, y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
+    }
+
+    const init = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      particles = [];
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(new Particle());
+      }
     };
-    window.addEventListener('resize', resize);
-    resize();
 
     const animate = () => {
       if (!ctx || !canvas) return;
-      
-      // Темный фон с легким шлейфом
-      ctx.fillStyle = 'rgba(5, 11, 20, 0.1)';
+
+      // Эффект шлейфа (вместо полной очистки заливаем полупрозрачным цветом)
+      // Это создает смазанный след за частицами
+      ctx.fillStyle = 'rgba(5, 11, 20, 0.2)'; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      time += 0.01;
+      // Плавное движение центра вихря за мышкой (Lerp)
+      vortexX += (targetX - vortexX) * 0.05;
+      vortexY += (targetY - vortexY) * 0.05;
 
-      // Рисуем несколько слоев волн
-      for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height);
+      // Отрисовка центрального свечения (ядра вихря)
+      const gradient = ctx.createRadialGradient(vortexX, vortexY, 0, vortexX, vortexY, 150);
+      gradient.addColorStop(0, 'rgba(45, 212, 191, 0.1)');
+      gradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const color = i === 0 ? 'rgba(45, 212, 191, 0.2)' : i === 1 ? 'rgba(96, 165, 250, 0.2)' : 'rgba(168, 85, 247, 0.2)';
-        ctx.fillStyle = color;
-
-        for (let x = 0; x <= canvas.width; x += 20) {
-          // Базовая волна
-          let y = Math.sin(x * 0.003 + time + i) * 100 + canvas.height / 2;
-          
-          // Искажение от мыши
-          const dx = mouseRef.current.x - x;
-          const dy = mouseRef.current.y - y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          
-          if (dist < 300) {
-            // Волна вытягивается к мышке
-            y -= (300 - dist) * 0.5; 
-          }
-
-          ctx.lineTo(x, y);
-        }
-
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.closePath();
-        
-        // Размытие для эффекта "жидкости"
-        ctx.shadowBlur = 50;
-        ctx.shadowColor = color;
-        ctx.fill();
-        ctx.shadowBlur = 0; // Сброс
-      }
+      particles.forEach((p) => {
+        p.update();
+        p.draw();
+      });
 
       animationFrameId = requestAnimationFrame(animate);
     };
 
+    init();
     animate();
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="fixed inset-0 z-[-50] bg-[#050B14] pointer-events-none" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 z-[-50] bg-[#050B14] pointer-events-none"
+    />
+  );
 }
