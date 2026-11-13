@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { examList, getTopic } from "@/data/catalog";
 import { topicsLabel } from "@/lib/format";
 import { ExamLink, TopicLink } from "@/components/links";
@@ -8,6 +9,7 @@ import { Page } from "@/components/ui";
 import { useProgressHydrated } from "@/components/use-hydrated";
 import { topicKey, useProgress } from "@/store/progress";
 import { DevelopersSection } from "@/components/DevelopersSection";
+import { RegisterModal } from "@/components/RegisterModal";
 
 const steps = [
   {
@@ -45,6 +47,9 @@ function countTopics(
 }
 
 export function HomeView() {
+  // Добавили состояние для открытия окна
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const hydrated = useProgressHydrated();
   const topics = useProgress((state) => state.topics);
   const last = useProgress((state) => state.last);
@@ -74,6 +79,14 @@ export function HomeView() {
           Отдельные треки для ОРТ, SAT и IELTS. У каждого экзамена свои предметы, темы и
           вопросы — без общего переключателя.
         </p>
+
+        {/* НОВАЯ КНОПКА РЕГИСТРАЦИИ */}
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="mt-6 rounded-full bg-teal px-8 py-3 font-semibold text-ink shadow-lg transition-transform hover:scale-105 active:scale-95"
+        >
+          Создать аккаунт
+        </button>
 
         <dl className="mt-8 grid max-w-lg grid-cols-3 gap-3">
           {[
@@ -206,6 +219,9 @@ export function HomeView() {
         </Link>{" "}
         не смешивает задания разных экзаменов.
       </p>
+
+      {/* ВЫЗОВ ОКНА РЕГИСТРАЦИИ */}
+      <RegisterModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </Page>
   );
 }
