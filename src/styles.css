@@ -13,8 +13,7 @@
   --color-mist: #f0f6ff;
   --color-slate: #94a3b8;
 
-  /* Стеклянные поверхности вместо сплошного тёмно-синего */
-  --color-card: rgba(255, 255, 255, 0.05);
+  --color-card: rgba(255, 255, 255, 0.04);
   --color-ink: #f8fafc;
   --color-muted: #94a3b8;
   --color-line: rgba(255, 255, 255, 0.14);
@@ -39,13 +38,7 @@
   body {
     margin: 0;
     min-height: 100vh;
-    background-color: #050b14;
-    background-image:
-      radial-gradient(circle at 12% 18%, rgba(100, 255, 218, 0.16) 0%, transparent 42%),
-      radial-gradient(circle at 88% 25%, rgba(56, 189, 248, 0.16) 0%, transparent 45%),
-      radial-gradient(circle at 30% 78%, rgba(99, 102, 241, 0.16) 0%, transparent 45%),
-      radial-gradient(circle at 82% 85%, rgba(100, 255, 218, 0.12) 0%, transparent 42%);
-    background-attachment: fixed;
+    background-color: #030711;
     color: var(--color-mist);
     font-family: var(--font-sans);
     line-height: 1.55;
@@ -70,21 +63,21 @@
 }
 
 @layer components {
-  /* Единое матовое стекло для всех карточек (ОРТ, SAT, IELTS, Продолжить и счётчики) */
+  /* Полупрозрачное матовое стекло с видимым размытием частиц и чёрной дыры на фоне */
   .card,
   .bg-navy-2,
   .bg-navy-3,
   .bg-card,
   .glass,
   .glass-card {
-    background: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(24px) saturate(140%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(14px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
     color: var(--color-ink);
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     box-shadow:
-      0 10px 30px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+      0 8px 32px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
   }
 
   .card {
@@ -100,29 +93,29 @@
   }
 
   .card-hover:hover {
-    background: rgba(255, 255, 255, 0.09) !important;
-    border-color: rgba(100, 255, 218, 0.45) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(100, 255, 218, 0.5) !important;
     transform: translateY(-3px);
     box-shadow:
-      0 16px 40px rgba(0, 0, 0, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+      0 14px 40px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
   }
 
-  /* Матовая шапка и модальные окна */
+  /* Матовая шапка */
   .glass-panel,
   header,
   nav {
-    background: rgba(5, 11, 20, 0.55) !important;
-    backdrop-filter: blur(20px) saturate(140%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(3, 7, 17, 0.45) !important;
+    backdrop-filter: blur(14px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
   }
 
   .glass-button {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
   }
 
   .tap {
