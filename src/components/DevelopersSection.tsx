@@ -42,19 +42,19 @@ function DeveloperAvatar({ dev }: { dev: Developer }) {
 
   if (imgError) {
     return (
-      <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-navy text-lg font-bold text-teal shadow-sm">
+      <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-teal/30 bg-teal/10 text-lg font-bold text-teal shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-md">
         {dev.initials}
       </span>
     );
   }
 
   return (
-    <div className="size-16 shrink-0 overflow-hidden rounded-2xl border-2 border-teal/40 bg-navy shadow-md">
+    <div className="size-16 shrink-0 overflow-hidden rounded-2xl border border-white/25 bg-white/10 p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] backdrop-blur-md transition-colors group-hover:border-teal/60">
       <img
         src={dev.photo}
         alt={dev.name}
         onError={() => setImgError(true)}
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+        className="h-full w-full rounded-[14px] object-cover transition-transform duration-300 group-hover:scale-110"
       />
     </div>
   );
@@ -76,7 +76,8 @@ export function DevelopersSection() {
           Разработчики платформы Click
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate">
-          Мы создаём Click вдвоём, чтобы подготовка к ОРТ, SAT и IELTS была чёткой, современной и без лишней воды.
+          Мы создаём Click вдвоём, чтобы подготовка к ОРТ, SAT и IELTS была чёткой,
+          современной и без лишней воды.
         </p>
       </motion.div>
 
@@ -99,16 +100,17 @@ export function DevelopersSection() {
                 <div className="flex items-center gap-4">
                   <DeveloperAvatar dev={dev} />
                   <div>
-                    <h3 className="text-xl font-semibold text-ink transition-colors group-hover:text-teal">
+                    <h3 className="text-xl font-semibold text-mist transition-colors group-hover:text-teal">
                       {dev.name}
                     </h3>
-                    <p className="text-xs font-semibold tracking-wide text-ok">
+                    <p className="text-xs font-semibold tracking-wide text-teal">
                       {dev.role}
                     </p>
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 text-xs font-semibold text-mist transition-transform group-hover:scale-105">
+                {/* Стеклянная кнопка Instagram */}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.08] px-3.5 py-1.5 text-xs font-semibold text-mist shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-md transition-all group-hover:scale-105 group-hover:border-teal/50 group-hover:bg-teal/15 group-hover:text-teal">
                   <svg
                     className="size-3.5 text-teal"
                     fill="currentColor"
@@ -121,16 +123,17 @@ export function DevelopersSection() {
                 </span>
               </div>
 
-              <p className="mt-4 text-sm leading-relaxed text-ink">
+              <p className="mt-4 text-sm leading-relaxed text-mist/90">
                 {dev.description}
               </p>
             </div>
 
+            {/* Стеклянные капсулы тегов */}
             <ul className="mt-5 flex flex-wrap gap-2">
               {dev.tags.map((tag) => (
                 <li
                   key={tag}
-                  className="rounded-full bg-line px-3 py-1 text-xs font-medium text-ink"
+                  className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-xs font-medium text-mist/90 backdrop-blur-md"
                 >
                   {tag}
                 </li>
