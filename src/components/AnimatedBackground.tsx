@@ -12,13 +12,14 @@ export function AnimatedBackground() {
     let animationFrameId: number;
     let particles: Particle[] = [];
 
-    // Настройки вихря
-    const particleCount = 400; // Много частиц для плотной воронки
-    const maxRadius = Math.max(window.innerWidth, window.innerHeight) * 0.8;
+    // --- НАСТРОЙКИ ЧЕРНОЙ ДЫРЫ ---
+    const particleCount = 600; // Количество частиц газа
+    const eventHorizon = 60; // Радиус абсолютно черной дыры (горизонт событий)
+    const maxRadius = Math.max(window.innerWidth, window.innerHeight) * 0.7;
 
-    // Центр вихря (плавно следует за мышкой)
-    let vortexX = window.innerWidth / 2;
-    let vortexY = window.innerHeight / 2;
+    // Центр черной дыры (плавно следует за мышкой)
+    let holeX = window.innerWidth / 2;
+    let holeY = window.innerHeight / 2;
     let targetX = window.innerWidth / 2;
     let targetY = window.innerHeight / 2;
 
@@ -37,32 +38,30 @@ export function AnimatedBackground() {
       color: string;
 
       constructor() {
-        // Случайный угол (от 0 до 2Пи)
         this.angle = Math.random() * Math.PI * 2;
-        // Случайное расстояние от центра (от 50 до maxRadius)
-        this.distance = Math.random() * maxRadius + 50;
-        // Скорость вращения (чем ближе к центру, тем быстрее)
+        this.distance = Math.random() * maxRadius + eventHorizon;
+        // Скорость вращения (зависит от расстояния)
         this.speed = (Math.random() * 0.02 + 0.01);
         this.size = Math.random() * 1.5 + 0.5;
         
-        // Цвета: бирюзовый, синий и белый
+        // Цвета: Оранжевый, Желтый, Бирюзовый (космический газ)
         const colors = [
-          'rgba(45, 212, 191, 0.8)', // Teal
-          'rgba(96, 165, 250, 0.8)', // Blue
-          'rgba(255, 255, 255, 0.6)' // White
+          'rgba(255, 140, 0, 0.8)',  // Оранжевый
+          'rgba(255, 200, 50, 0.8)', // Желтый
+          'rgba(45, 212, 191, 0.8)', // Teal (под стиль сайта)
         ];
         this.color = colors[Math.floor(Math.random() * colors.length)];
       }
 
       update() {
-        // Вращение (закручивание)
-        this.angle += this.speed * (100 / this.distance); // Ускоряем ближе к центру
+        // Вращение
+        this.angle += this.speed * (150 / this.distance);
         
-        // Притяжение к центру (падение в воронку)
-        this.distance -= 1.5;
+        // Притяжение к центру (падает в дыру)
+        this.distance -= 0.8;
 
-        // Если частица достигла центра, возрождаем её на краю
-        if (this.distance < 10) {
+        // Если частица достигла горизонта событий — возрождаем её на краю
+        if (this.distance < eventHorizon) {
           this.distance = maxRadius;
           this.angle = Math.random() * Math.PI * 2;
         }
@@ -71,14 +70,20 @@ export function AnimatedBackground() {
       draw() {
         if (!ctx) return;
         
-        // Вычисляем координаты частицы относительно центра вихря
-        const x = vortexX + Math.cos(this.angle) * this.distance;
-        const y = vortexY + Math.sin(this.angle) * this.distance;
+        // Координаты частицы (делаем орбиту слегка эллиптичной для объема)
+        const x = holeX + Math.cos(this.angle) * this.distance;
+        const y = holeY + Math.sin(this.angle) * (this.distance * 0.6); // 0.6 создает эффект наклона
 
+        // Чем ближе к центру, тем ярче
+        const opacity = 1 - (this.distance / maxRadius);
+        
         ctx.beginPath();
         ctx.arc(x, y, this.size, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
+        ctx.shadowBlur = 10 * opacity;
+        ctx.shadowColor = this.color;
         ctx.fill();
+        ctx.shadowBlur = 0; // Сброс для других элементов
       }
     }
 
@@ -94,26 +99,44 @@ export function AnimatedBackground() {
     const animate = () => {
       if (!ctx || !canvas) return;
 
-      // Эффект шлейфа (вместо полной очистки заливаем полупрозрачным цветом)
-      // Это создает смазанный след за частицами
-      ctx.fillStyle = 'rgba(5, 11, 20, 0.2)'; 
+      // Очищаем экран (фон)
+      ctx.fillStyle = '#050B14';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Плавное движение центра вихря за мышкой (Lerp)
-      vortexX += (targetX - vortexX) * 0.05;
-      vortexY += (targetY - vortexY) * 0.05;
+      // Плавное движение дыры за мышкой
+      holeX += (targetX - holeX) * 0.05;
+      holeY += (targetY - holeY) * 0.05;
 
-      // Отрисовка центрального свечения (ядра вихря)
-      const gradient = ctx.createRadialGradient(vortexX, vortexY, 0, vortexX, vortexY, 150);
-      gradient.addColorStop(0, 'rgba(45, 212, 191, 0.1)');
-      gradient.addColorStop(1, 'transparent');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // --- 1. Рисуем свечение вокруг черной дыры ---
+      const glowGradient = ctx.createRadialGradient(
+        holeX, holeY, eventHorizon, 
+        holeX, holeY, eventHorizon + 100
+      );
+      glowGradient.addColorStop(0, 'rgba(255, 140, 0, 0.4)'); // Оранжевое свечение
+      glowGradient.addColorStop(0.5, 'rgba(45, 212, 191, 0.1)'); // Бирюзовое
+      glowGradient.addColorStop(1, 'transparent');
+      
+      ctx.beginPath();
+      ctx.arc(holeX, holeY, eventHorizon + 100, 0, Math.PI * 2);
+      ctx.fillStyle = glowGradient;
+      ctx.fill();
 
+      // --- 2. Рисуем частицы (Аккреционный диск) ---
       particles.forEach((p) => {
         p.update();
         p.draw();
       });
+
+      // --- 3. Рисуем Горизонт Событий (Абсолютно Черный круг) ---
+      ctx.beginPath();
+      ctx.arc(holeX, holeY, eventHorizon, 0, Math.PI * 2);
+      ctx.fillStyle = '#000000'; // Чистый черный
+      ctx.fill();
+      
+      // Тонкая яркая обводка вокруг горизонта
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
       animationFrameId = requestAnimationFrame(animate);
     };
