@@ -3,6 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Shell } from "@/components/shell";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { MobileNav } from "@/components/MobileNav";
 import appCss from "../styles.css?url";
 
 // ВАЖНО: Переменная должна называться именно Route
@@ -25,17 +26,17 @@ export const Route = createRootRoute({
         <HeadContent />
       </head>
       <body className="antialiased text-white overflow-x-hidden bg-[#050B14]">
-        
         {/* Анимированный фон */}
         <AnimatedBackground />
-        
+
         {/* Контент поверх фона */}
-        <div className="relative z-10 flex min-h-screen flex-col">
+        <div className="relative z-10 flex min-h-screen flex-col pb-20 md:pb-0">
           <PreviewHostBridge />
           <AuthProvider>
             <Shell>
               <Outlet />
             </Shell>
+            <MobileNav />
           </AuthProvider>
         </div>
 
