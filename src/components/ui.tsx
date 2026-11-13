@@ -1,51 +1,32 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cn } from "@/lib/cn";
+import { ReactNode } from 'react'
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "navy" | "outline" | "outline-light" | "ghost";
-};
-
-export function Button({ variant = "primary", className, type = "button", ...props }: ButtonProps) {
+// Главная обертка для страниц (Page)
+export function Page({ children, className = "" }: { children: ReactNode, className?: string }) {
   return (
-    <button
-      type={type}
-      className={cn(
-        "tap inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40",
-        variant === "primary" && "bg-teal text-ink",
-        variant === "navy" && "bg-navy text-mist",
-        variant === "outline" && "border border-line bg-card text-ink",
-        variant === "outline-light" && "border border-line-dark bg-transparent text-mist",
-        variant === "ghost" && "text-slate",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-export function Page({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("mx-auto w-full max-w-6xl px-4 py-8 md:py-12", className)}>{children}</div>;
-}
-
-export function Meter({
-  value,
-  max,
-  tone = "card",
-}: {
-  value: number;
-  max: number;
-  tone?: "card" | "navy";
-}) {
-  const pct = max <= 0 ? 0 : Math.round((value / max) * 100);
-  return (
-    <div
-      className={cn("h-1.5 overflow-hidden rounded-full", tone === "card" ? "bg-line" : "bg-navy-3")}
-      role="progressbar"
-      aria-valuenow={value}
-      aria-valuemin={0}
-      aria-valuemax={max}
-    >
-      <div className="h-full bg-teal" style={{ width: `${pct}%` }} />
+    <div className={`relative w-full min-h-screen ${className}`}>
+      {children}
     </div>
-  );
+  )
+}
+
+// Базовая карточка (на случай, если используется в других файлах)
+export function Card({ children, className = "" }: { children: ReactNode, className?: string }) {
+  return (
+    <div className={`bg-[#0a192f]/50 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+// Базовая кнопка (на случай, если используется в других файлах)
+export function Button({ children, className = "", onClick, type = "button" }: { children: ReactNode, className?: string, onClick?: () => void, type?: "button" | "submit" }) {
+  return (
+    <button 
+      type={type}
+      onClick={onClick}
+      className={`px-5 py-2.5 rounded-full bg-teal text-ink font-semibold hover:brightness-110 transition-all ${className}`}
+    >
+      {children}
+    </button>
+  )
 }

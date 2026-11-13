@@ -2,25 +2,21 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Shell } from "@/components/shell";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 import appCss from "../styles.css?url";
 
+// ВАЖНО: Переменная должна называться именно Route
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Click — подготовка к экзаменам" },
-      {
-        name: "description",
-        content:
-          "Click — отдельные программы подготовки к ОРТ, SAT и IELTS: теория, практика и пробный экзамен.",
-      },
       { name: "theme-color", content: "#0A192F" },
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/clicklogo.png" },
       { rel: "stylesheet", href: appCss },
-      { rel: "apple-touch-icon", href: "/clicklogo.png" },
     ],
   }),
   component: () => (
@@ -28,13 +24,21 @@ export const Route = createRootRoute({
       <head>
         <HeadContent />
       </head>
-      <body>
-        <PreviewHostBridge />
-        <AuthProvider>
-          <Shell>
-            <Outlet />
-          </Shell>
-        </AuthProvider>
+      <body className="antialiased text-white overflow-x-hidden bg-[#050B14]">
+        
+        {/* Анимированный фон */}
+        <AnimatedBackground />
+        
+        {/* Контент поверх фона */}
+        <div className="relative z-10 flex min-h-screen flex-col">
+          <PreviewHostBridge />
+          <AuthProvider>
+            <Shell>
+              <Outlet />
+            </Shell>
+          </AuthProvider>
+        </div>
+
         <Scripts />
       </body>
     </html>

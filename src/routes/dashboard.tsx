@@ -67,8 +67,10 @@ const STATS = [
 
 const BASE_COINS = 450
 
-// ---------- ЭФФЕКТ 1: Count-up чисел ----------
+// Стиль для стеклянных карточек (Glassmorphism)
+const GLASS_STYLE = "bg-[#0a192f]/50 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl"
 
+// ---------- ЭФФЕКТ 1: Count-up чисел ----------
 function useCountUp(target: number, delay = 0, duration = 1.4) {
   const [value, setValue] = useState(0)
   useEffect(() => {
@@ -82,8 +84,7 @@ function useCountUp(target: number, delay = 0, duration = 1.4) {
   return value
 }
 
-// ---------- ЭФФЕКТ 5: Spotlight-карточка ----------
-
+// ---------- ЭФФЕКТ 2: Spotlight-карточка ----------
 function GlowCard({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -120,7 +121,7 @@ function GlowCard({ children, className = "", delay = 0 }: { children: React.Rea
 function StatCard({ icon, value, label, color, index }: { icon: string; value: number; label: string; color: string; index: number }) {
   const display = useCountUp(value, index * 0.1)
   return (
-    <GlowCard delay={index * 0.1} className="card p-5 flex flex-col">
+    <GlowCard delay={index * 0.1} className={`${GLASS_STYLE} p-5 flex flex-col`}>
       <motion.span
         className="text-2xl mb-2"
         aria-hidden
@@ -164,7 +165,7 @@ function SubjectRow({ item, index }: { item: Subject; index: number }) {
         </div>
       </div>
 
-      <div className="w-full bg-ink rounded-full h-2.5 overflow-hidden relative">
+      <div className="w-full bg-white/5 rounded-full h-2.5 overflow-hidden relative">
         <motion.div
           className={`${cfg.bar} h-2.5 rounded-full relative overflow-hidden`}
           initial={{ width: 0 }}
@@ -214,12 +215,11 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: (id: number) => vo
       className="flex items-start gap-3 cursor-pointer group select-none relative"
     >
       <div className="relative shrink-0 mt-0.5">
-        {/* ИСПРАВЛЕНО: убран spring, чтобы не было ошибки с keyframes */}
         <motion.div
           animate={task.done ? { scale: [1, 1.35, 1] } : { scale: 1 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
           className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-            task.done ? 'bg-teal/20 text-teal' : 'border-2 border-line-dark group-hover:border-teal'
+            task.done ? 'bg-teal/20 text-teal' : 'border-2 border-white/20 group-hover:border-teal'
           }`}
         >
           {task.done && "✓"}
@@ -290,9 +290,10 @@ function DashboardPage() {
   const statCards = [...STATS, { label: "Монеты", value: stats.coins, icon: "🪙", color: "text-slate" }]
 
   return (
-    <Page className="pt-8 pb-20 md:pt-12">
+    // Убрали bg-цвета, чтобы был виден глобальный анимированный фон
+    <Page className="pt-8 pb-20 md:pt-12 relative bg-transparent">
       <style>{FX_CSS}</style>
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto relative z-10">
 
         {/* Шапка */}
         <motion.div
@@ -348,7 +349,7 @@ function DashboardPage() {
             <Link to="/profile" className="px-5 py-2.5 rounded-full bg-teal text-ink text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-teal/20">
               Мой профиль
             </Link>
-            <Link to="/" className="px-5 py-2.5 rounded-full border border-line-dark text-sm font-medium text-slate hover:text-mist hover:border-teal transition-colors">
+            <Link to="/" className="px-5 py-2.5 rounded-full border border-white/20 text-sm font-medium text-slate hover:text-mist hover:border-teal transition-colors backdrop-blur-sm">
               На главную
             </Link>
           </div>
@@ -367,7 +368,7 @@ function DashboardPage() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Анализ успеваемости */}
-            <GlowCard className="card p-6 md:p-8">
+            <GlowCard className={`${GLASS_STYLE} p-6 md:p-8`}>
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-semibold text-mist flex items-center gap-2">
                   Анализ успеваемости
@@ -388,7 +389,7 @@ function DashboardPage() {
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6, type: 'spring', stiffness: 150, damping: 16 }}
-                className="mt-8 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex gap-3 items-start"
+                className="mt-8 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex gap-3 items-start backdrop-blur-sm"
               >
                 <motion.span
                   className="text-xl"
@@ -409,7 +410,7 @@ function DashboardPage() {
             </GlowCard>
 
             {/* Продолжить урок */}
-            <GlowCard className="card p-6 md:p-8 relative overflow-hidden">
+            <GlowCard className={`${GLASS_STYLE} p-6 md:p-8 relative overflow-hidden`}>
               <motion.div
                 className="absolute top-0 right-0 w-64 h-64 bg-teal/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"
                 animate={{ x: [0, -25, 10, 0], y: [0, 15, -10, 0], scale: [1, 1.15, 0.95, 1] }}
@@ -451,14 +452,14 @@ function DashboardPage() {
           </div>
 
           {/* ПРАВАЯ КОЛОНКА */}
-          <GlowCard className="card p-6" delay={0.2}>
+          <GlowCard className={`${GLASS_STYLE} p-6`} delay={0.2}>
             <h3 className="text-lg font-semibold text-mist mb-4">Задания на день</h3>
             <div className="space-y-4">
               {tasks.map(task => (
                 <TaskItem key={task.id} task={task} onToggle={toggleTask} />
               ))}
             </div>
-            <div className="mt-6 pt-4 border-t border-line-dark flex items-center justify-between">
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
               <span className="text-xs text-slate font-medium">Баланс</span>
               <span className="text-sm font-bold text-slate tabular-nums">🪙 {coinsDisplay}</span>
             </div>
