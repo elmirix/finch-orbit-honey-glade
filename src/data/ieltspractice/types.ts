@@ -3,7 +3,7 @@ export type PracticeModule = "listening" | "reading" | "writing" | "speaking";
 export interface PracticeQuestion {
   id: string;
   number: number;
-  type: "choice" | "input";
+  type: "choice" | "input" | "matrix" | "matching";
   prompt: string;
   options?: string[];
   answer: string;
@@ -13,8 +13,11 @@ export interface PracticeQuestion {
 export interface PracticeSection {
   title: string;
   instruction: string;
-  passage?: string;
+  passage?: string; // Используем для конспекта с пропусками {{1}}, {{2}}...
   audioUrl?: string;
+  imageUrl?: string;
+  sharedOptions?: string[]; // Общие варианты A-H для карты или Opinions
+  sharedOptionsTitle?: string;
   transcript?: string;
   questions: PracticeQuestion[];
 }
