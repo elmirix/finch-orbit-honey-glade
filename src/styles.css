@@ -6,19 +6,17 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-navy: #071120;
-  --color-navy-2: #0f2038;
-  --color-navy-3: #162c4c;
+  --color-navy: #050b14;
+  --color-navy-2: rgba(255, 255, 255, 0.05);
+  --color-navy-3: rgba(255, 255, 255, 0.08);
   --color-mist: #f0f6ff;
   --color-slate: #94a3b8;
-  
-  /* Стеклянные поверхности вместо сплошного белого */
-  --color-card: rgba(255, 255, 255, 0.06);
+  /* Стеклянные поверхности вместо сплошного тёмного */
+  --color-card: rgba(255, 255, 255, 0.05);
   --color-ink: #f8fafc;
   --color-muted: #94a3b8;
   --color-line: rgba(255, 255, 255, 0.14);
   --color-line-dark: rgba(255, 255, 255, 0.16);
-  
   --color-teal: #64ffda;
   --color-teal-soft: rgba(100, 255, 218, 0.14);
   --color-ok: #2dd4bf;
@@ -37,13 +35,13 @@
   body {
     margin: 0;
     min-height: 100vh;
-    background-color: var(--color-navy);
-    /* Мягкие световые пятна на фоне для реалистичного эффекта стекла iOS */
-    background-image: 
-      radial-gradient(circle at 15% 15%, rgba(100, 255, 218, 0.14) 0%, transparent 40%),
-      radial-gradient(circle at 85% 35%, rgba(56, 189, 248, 0.14) 0%, transparent 45%),
-      radial-gradient(circle at 25% 75%, rgba(99, 102, 241, 0.14) 0%, transparent 45%),
-      radial-gradient(circle at 80% 85%, rgba(100, 255, 218, 0.1) 0%, transparent 40%);
+    background-color: #050b14;
+    /* Яркие размытые пятна на фоне, чтобы сквозь стекло просвечивал градиент */
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(100, 255, 218, 0.16) 0%, transparent 42%),
+      radial-gradient(circle at 88% 25%, rgba(56, 189, 248, 0.16) 0%, transparent 45%),
+      radial-gradient(circle at 30% 78%, rgba(99, 102, 241, 0.16) 0%, transparent 45%),
+      radial-gradient(circle at 82% 85%, rgba(100, 255, 218, 0.12) 0%, transparent 42%);
     background-attachment: fixed;
     color: var(--color-mist);
     font-family: var(--font-sans);
@@ -70,45 +68,56 @@
 
 @layer components {
   /* Эффект жидкого стекла iOS для всех карточек */
-  .card {
+  .card,
+  .bg-navy-2,
+  .bg-card {
     background: linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.09) 0%,
-      rgba(255, 255, 255, 0.03) 100%
-    );
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.025) 100%
+    ) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
     color: var(--color-ink);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: var(--radius-card);
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
     box-shadow:
       0 10px 35px -5px rgba(0, 0, 0, 0.45),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.22) !important;
+  }
+
+  .card {
+    border-radius: var(--radius-card);
   }
 
   .card-hover {
-    transition: border-color 220ms ease, transform 220ms ease, background 220ms ease, box-shadow 220ms ease;
+    transition:
+      border-color 220ms ease,
+      transform 220ms ease,
+      background 220ms ease,
+      box-shadow 220ms ease;
   }
 
   .card-hover:hover {
     background: linear-gradient(
       145deg,
       rgba(255, 255, 255, 0.13) 0%,
-      rgba(255, 255, 255, 0.05) 100%
-    );
-    border-color: rgba(100, 255, 218, 0.45);
+      rgba(255, 255, 255, 0.045) 100%
+    ) !important;
+    border-color: rgba(100, 255, 218, 0.45) !important;
     transform: translateY(-3px);
     box-shadow:
       0 16px 40px -8px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.35) !important;
   }
 
-  /* Дополнительный класс для стеклянной шапки и модальных окон */
-  .glass-panel {
-    background: rgba(10, 22, 40, 0.65);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  /* Стеклянная шапка и модальные окна */
+  .glass-panel,
+  header,
+  nav {
+    background: rgba(7, 17, 32, 0.55) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
   }
 
   .tap {
