@@ -80,27 +80,6 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
   }
 
-  .card {
-    border-radius: var(--radius-card);
-  }
-
-  .card-hover {
-    transition:
-      border-color 220ms ease,
-      transform 220ms ease,
-      background 220ms ease,
-      box-shadow 220ms ease;
-  }
-
-  .card-hover:hover {
-    background: rgba(255, 255, 255, 0.07) !important;
-    border-color: rgba(100, 255, 218, 0.5) !important;
-    transform: translateY(-3px);
-    box-shadow:
-      0 14px 40px rgba(0, 0, 0, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
-  }
-
   /* Матовая шапка */
   .glass-panel,
   header,
@@ -167,4 +146,25 @@
     transition: none;
     transform: none;
   }
+}
+/* В самом низу src/styles.css — БЕЗ @layer components */
+.card,
+.bg-navy-2,
+.bg-navy-3,
+.bg-card,
+.glass,
+.glass-card {
+  background-color: rgba(15, 23, 42, 0.35) !important;
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  ) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+  backdrop-filter: blur(18px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  transform: translateZ(0); /* Принудительно включает аппаратное размытие в браузере */
 }
