@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -83,6 +84,11 @@ function pickRandom<T>(items: T[]): T {
 
 
 const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const TWO_ANSWER_QUESTION_PAIRS = [[21, 22], [23, 24]] as const;
+
+type ChoiceRenderItem =
+  | { kind: "single"; question: PracticeQuestion }
+  | { kind: "pair"; questions: [PracticeQuestion, PracticeQuestion] };
 
 
 // Перевод сырых баллов (из 40) в IELTS Band Score
@@ -109,6 +115,57 @@ function getIELTSBand(correct: number): string {
 
   return "4.5 или ниже";
 
+}
+
+
+type PracticeTimerProps = {
+  initialSeconds: number;
+  resetKey: number;
+  paused: boolean;
+  onExpire: () => void;
+};
+
+/** Keeps the one-second countdown isolated so the entire test does not rerender every second. */
+function PracticeTimer({ initialSeconds, resetKey, paused, onExpire }: PracticeTimerProps) {
+  const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
+  const onExpireRef = useRef(onExpire);
+  const expiredRef = useRef(false);
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
+
+  useEffect(() => {
+    setSecondsLeft(initialSeconds);
+    expiredRef.current = false;
+  }, [initialSeconds, resetKey]);
+
+  useEffect(() => {
+    if (paused) return;
+    const intervalId = window.setInterval(() => {
+      setSecondsLeft((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [paused, resetKey]);
+
+  useEffect(() => {
+    if (secondsLeft === 0 && !paused && !expiredRef.current) {
+      expiredRef.current = true;
+      onExpireRef.current();
+    }
+  }, [secondsLeft, paused]);
+
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = secondsLeft % 60;
+  const formattedTime = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+  return (
+    <span className={`practice-timer inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-bold text-white shadow-lg ${secondsLeft <= 300 ? "practice-timer-critical" : "border-white/10 bg-white/5"}`}>
+      <Clock className="size-4 text-teal" />
+      <span className="mr-1 text-[9px] font-black tracking-[0.18em] text-slate-400">TIME</span>
+      <span className="tracking-widest tabular-nums">{formattedTime}</span>
+    </span>
+  );
 }
 
 
@@ -155,57 +212,51 @@ export function IeltsPracticePage() {
   const [showScript, setShowScript] = useState(false);
 
   const [draggedLetter, setDraggedLetter] = useState<string | null>(null);
-
+  const [timerResetKey, setTimerResetKey] = useState(0);
+  const partNavigationRef = useRef<HTMLElement | null>(null);
+  const activePartButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const totalMinutes = tests.reduce((acc, t) => acc + t.durationMinutes, 0);
 
-  const [secondsLeft, setSecondsLeft] = useState(totalMinutes * 60);
-
 
   useEffect(() => {
-
     setActiveTestIndex(0);
-
     setActivePartIndex(0);
-
     setAnswers({});
-
     setSubmitted(false);
-
     setShowModal(false);
-
-    setSecondsLeft(totalMinutes * 60);
-
+    setTimerResetKey((key) => key + 1);
   }, [tests, totalMinutes]);
 
+  // When a part changes, bring its content into view instead of leaving the user
+  // at the old scroll position (especially important with the mobile bottom dock).
+  useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+
+    // Keep the selected Part tab visible when navigating with the arrow buttons.
+    const navigation = partNavigationRef.current;
+    const activeButton = activePartButtonRef.current;
+    if (navigation && activeButton) {
+      const navRect = navigation.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      if (buttonRect.left < navRect.left) {
+        navigation.scrollBy({ left: buttonRect.left - navRect.left - 12, behavior: reduceMotion ? "auto" : "smooth" });
+      } else if (buttonRect.right > navRect.right) {
+        navigation.scrollBy({ left: buttonRect.right - navRect.right + 12, behavior: reduceMotion ? "auto" : "smooth" });
+      }
+    }
+    setShowScript(false);
+  }, [activeTestIndex, activePartIndex]);
 
   useEffect(() => {
-
-    if (submitted) return;
-
-    const timer = window.setInterval(() => {
-
-      setSecondsLeft((prev) => {
-
-        if (prev <= 1) {
-
-          setSubmitted(true);
-
-          setShowModal(true);
-
-          return 0;
-
-        }
-
-        return prev - 1;
-
-      });
-
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-
-  }, [submitted]);
+    if (!showModal) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showModal]);
 
 
   const currentTest = tests[activeTestIndex];
@@ -228,72 +279,36 @@ export function IeltsPracticePage() {
   const completion = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
 
 
-  const formatTime = (sec: number) => {
 
-    const m = Math.floor(sec / 60);
 
-    const s = sec % 60;
+  const getTwoAnswerPair = (question: PracticeQuestion, section: PracticeSection) => {
+    const pairNumbers = TWO_ANSWER_QUESTION_PAIRS.find(([first, second]) =>
+      question.number === first || question.number === second,
+    );
+    if (!pairNumbers) return null;
 
-    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-
+    const first = section.questions.find((item) => item.number === pairNumbers[0]);
+    const second = section.questions.find((item) => item.number === pairNumbers[1]);
+    if (!first || !second || first.type !== "choice" || second.type !== "choice") return null;
+    return [first, second] as [PracticeQuestion, PracticeQuestion];
   };
-
 
   const checkAnswer = (q: PracticeQuestion, section: PracticeSection) => {
+    const rightAns = q.answer.trim().toUpperCase();
+    const pair = getTwoAnswerPair(q, section);
 
-    const userAns = (answers[q.id] ?? "").trim().toLowerCase();
-
-    const rightAns = q.answer.trim().toLowerCase();
-
-    if (!userAns) return false;
-
-
-    if ((q.number === 21 || q.number === 22) && section.questions.length >= 2) {
-
-      const q21 = section.questions.find((item) => item.number === 21);
-
-      const q22 = section.questions.find((item) => item.number === 22);
-
-      if (q21 && q22) {
-
-        const u21 = (answers[q21.id] ?? "").trim().toLowerCase();
-
-        const u22 = (answers[q22.id] ?? "").trim().toLowerCase();
-
-        if (u21 === u22) return q.number === 21 && (userAns === "b" || userAns === "d");
-
-        return userAns === "b" || userAns === "d";
-
-      }
-
+    // Questions 21–22 and 23–24 are one shared "choose TWO" task.
+    // Each selected letter earns the point for the matching question number.
+    if (pair) {
+      const selected = pair
+        .map((item) => (answers[item.id] ?? "").trim().toUpperCase())
+        .filter(Boolean);
+      return selected.includes(rightAns);
     }
 
-
-    if ((q.number === 23 || q.number === 24) && section.questions.length >= 4) {
-
-      const q23 = section.questions.find((item) => item.number === 23);
-
-      const q24 = section.questions.find((item) => item.number === 24);
-
-      if (q23 && q24) {
-
-        const u23 = (answers[q23.id] ?? "").trim().toLowerCase();
-
-        const u24 = (answers[q24.id] ?? "").trim().toLowerCase();
-
-        if (u23 === u24) return q.number === 23 && (userAns === "a" || userAns === "e");
-
-        return userAns === "a" || userAns === "e";
-
-      }
-
-    }
-
-
-    return userAns === rightAns;
-
+    const userAns = (answers[q.id] ?? "").trim().toUpperCase();
+    return Boolean(userAns) && userAns === rightAns;
   };
-
 
   const scoreSummary = useMemo(() => {
 
@@ -340,7 +355,7 @@ export function IeltsPracticePage() {
 
     return (
 
-      <div className="practice-notes-card space-y-3.5 rounded-3xl border border-teal/20 p-8 text-[15px] leading-relaxed shadow-xl backdrop-blur-md transition-all">
+      <div className="practice-notes-card space-y-3.5 rounded-3xl border border-teal/20 p-8 text-[15px] leading-relaxed shadow-xl transition-all">
 
         {lines.map((line, idx) => {
 
@@ -456,7 +471,7 @@ export function IeltsPracticePage() {
 
                     {submitted && !isCorrect && (
 
-                      <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-xs font-bold text-emerald-800 animate-pulse">
+                      <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-xs font-bold text-emerald-800">
 
                         ✓ {q.answer}
 
@@ -544,12 +559,81 @@ export function IeltsPracticePage() {
 
   const matchingQuestions = currentSection.questions.filter((q) => q.type === "matching");
 
+  const choiceRenderItems: ChoiceRenderItem[] = (() => {
+    const renderedNumbers = new Set<number>();
+    const items: ChoiceRenderItem[] = [];
+
+    for (const question of choiceQuestions) {
+      if (renderedNumbers.has(question.number)) continue;
+      const pairNumbers = TWO_ANSWER_QUESTION_PAIRS.find(([first, second]) =>
+        question.number === first || question.number === second,
+      );
+      const pair = pairNumbers?.map((number) => choiceQuestions.find((item) => item.number === number));
+
+      if (pairNumbers && pair?.[0] && pair[1]) {
+        items.push({ kind: "pair", questions: [pair[0], pair[1]] });
+        renderedNumbers.add(pairNumbers[0]);
+        renderedNumbers.add(pairNumbers[1]);
+      } else {
+        items.push({ kind: "single", question });
+        renderedNumbers.add(question.number);
+      }
+    }
+
+    return items;
+  })();
+
+  const toggleTwoAnswerOption = (pair: [PracticeQuestion, PracticeQuestion], letter: string) => {
+    setAnswers((previous) => {
+      const selectedQuestion = pair.find(
+        (question) => (previous[question.id] ?? "").trim().toUpperCase() === letter,
+      );
+
+      if (selectedQuestion) {
+        const next = { ...previous };
+        delete next[selectedQuestion.id];
+        return next;
+      }
+
+      const selectedCount = pair.filter((question) => Boolean((previous[question.id] ?? "").trim())).length;
+      if (selectedCount >= 2) return previous;
+
+      const emptyQuestion = pair.find((question) => !(previous[question.id] ?? "").trim());
+      if (!emptyQuestion) return previous;
+      return { ...previous, [emptyQuestion.id]: letter };
+    });
+  };
+
+  const isMatchingOptionUsed = (letter: string, exceptQuestionId?: string) =>
+    matchingQuestions.some(
+      (question) =>
+        question.id !== exceptQuestionId &&
+        (answers[question.id] ?? "").trim().toUpperCase() === letter.toUpperCase(),
+    );
+
+  const assignMatchingAnswer = (questionId: string, letter: string) => {
+    setAnswers((previous) => {
+      const normalizedLetter = letter.trim().toUpperCase();
+      const alreadyUsed = matchingQuestions.some(
+        (question) =>
+          question.id !== questionId &&
+          (previous[question.id] ?? "").trim().toUpperCase() === normalizedLetter,
+      );
+      if (normalizedLetter && alreadyUsed) return previous;
+
+      const next = { ...previous };
+      if (normalizedLetter) next[questionId] = normalizedLetter;
+      else delete next[questionId];
+      return next;
+    });
+  };
+
   const hasInlineNotes = Boolean(currentSection.passage && /\{\{\d+\}\}/.test(currentSection.passage));
 
 
   return (
 
-    <Page className="ielts-practice-page relative isolate min-h-screen overflow-hidden pb-40 text-mist">
+    <Page className="ielts-practice-page relative isolate min-h-screen pb-56 text-mist sm:pb-40">
 
       <style>{`
         .ielts-practice-page {
@@ -561,24 +645,24 @@ export function IeltsPracticePage() {
           background-image: linear-gradient(rgba(148,163,184,.10) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.10) 1px, transparent 1px);
           background-size: 54px 54px; mask-image: linear-gradient(to bottom, black, transparent 88%);
         }
-        .ielts-practice-page > * { position: relative; z-index: 1; }
+        .ielts-practice-page > *:not(.practice-modal-backdrop) { position: relative; z-index: 1; }
         .practice-header, .practice-section-card, .practice-question-panel {
-          box-shadow: 0 24px 70px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.045);
-          animation: practice-rise .65s cubic-bezier(.2,.75,.25,1) both;
+          box-shadow: 0 16px 44px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.045);
+          animation: practice-rise .38s cubic-bezier(.2,.75,.25,1) both;
         }
         .practice-header { background: linear-gradient(135deg, rgba(17,28,49,.88), rgba(12,20,37,.78)); }
         .practice-header::after {
           position: absolute; inset: 0; content: ""; pointer-events: none; opacity: .45;
-          background: linear-gradient(112deg, transparent 18%, rgba(255,255,255,.055) 38%, transparent 58%); transform: translateX(-100%); animation: practice-sheen 9s ease-in-out infinite;
+          background: linear-gradient(112deg, transparent 18%, rgba(255,255,255,.055) 38%, transparent 58%); transform: translateX(-100%);
         }
-        .practice-orb { pointer-events: none; filter: blur(55px); animation: practice-float 12s ease-in-out infinite alternate; }
-        .practice-orb-two { animation-delay: -5s; }
+        .practice-orb { pointer-events: none; filter: blur(38px); opacity: .55; animation: none; }
+        .practice-orb-two { animation: none; }
         .practice-eyebrow, .practice-overview-kicker { display: inline-flex; align-items: center; gap: 9px; color: #75e7d8; font-size: 9px; font-weight: 900; letter-spacing: .22em; }
-        .practice-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #5eead4; box-shadow: 0 0 0 4px rgba(94,234,212,.12), 0 0 18px rgba(94,234,212,.8); animation: practice-pulse 2s ease-in-out infinite; }
+        .practice-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #5eead4; box-shadow: 0 0 0 4px rgba(94,234,212,.12), 0 0 18px rgba(94,234,212,.8); animation: none; }
         .practice-back-icon { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
         .practice-back-link:hover .practice-back-icon { transform: translateX(-3px); background: rgba(45,212,191,.12); }
         .practice-timer { min-width: 116px; justify-content: center; border-color: rgba(45,212,191,.22); background: rgba(5,12,25,.76); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.22); font-variant-numeric: tabular-nums; }
-        .practice-timer-critical { border-color: rgba(251,113,133,.48); background: rgba(136,19,55,.2); color: #fecdd3; animation: practice-timer-pulse 1.2s ease-in-out infinite; }
+        .practice-timer-critical { border-color: rgba(251,113,133,.48); background: rgba(136,19,55,.2); color: #fecdd3; animation: none; }
         .practice-random-badge { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
         .practice-test-tab { border-color: rgba(148,163,184,.13); background: rgba(15,23,42,.68); color: #cbd5e1; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
         .practice-test-tab:hover { transform: translateY(-2px); border-color: rgba(45,212,191,.45); background: rgba(20,184,166,.09); }
@@ -633,19 +717,27 @@ export function IeltsPracticePage() {
         .practice-match-option { background:linear-gradient(110deg,rgba(30,41,59,.84),rgba(15,23,42,.84)); }
         .practice-match-option:hover { transform:translateY(-2px); box-shadow:0 12px 24px rgba(0,0,0,.2); }
         .practice-transcript { background:rgba(12,21,39,.9); }
-        .practice-dock { box-shadow:0 -18px 50px rgba(0,0,0,.35); }
-        .practice-part-tab { border-color:rgba(148,163,184,.14); background:rgba(15,23,42,.68); }
-        .practice-part-tab:hover { transform:translateY(-2px); border-color:rgba(45,212,191,.4); }
+        .practice-dock { box-shadow:0 -14px 38px rgba(0,0,0,.34); padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
+        .practice-dock-inner { display:flex; align-items:center; gap:18px; }
+        .practice-part-navigation { display:flex; flex:1 1 auto; min-width:0; align-items:center; gap:8px; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; touch-action:pan-x; scrollbar-width:thin; scrollbar-color:rgba(45,212,191,.3) transparent; padding:3px 2px 6px; }
+        .practice-part-tab { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:space-between; gap:12px; min-height:42px; border:1px solid rgba(148,163,184,.14); border-radius:14px; background:rgba(15,23,42,.68); padding:9px 13px; color:#e2e8f0; font-size:12px; font-weight:800; transition:border-color .18s ease,background .18s ease,color .18s ease; }
+        .practice-part-tab[aria-current="step"] { border-color:rgba(45,212,191,.65); background:rgba(20,184,166,.16); color:#fff; box-shadow:inset 0 0 0 1px rgba(45,212,191,.1); }
+        .practice-part-tab:hover { border-color:rgba(45,212,191,.4); }
+        .practice-part-count { color:#94a3b8; font-size:10px; font-weight:700; white-space:nowrap; }
+        .practice-dock-actions { display:flex; flex:0 0 auto; align-items:center; gap:12px; }
+        .practice-dock-stepper { display:flex; align-items:center; gap:7px; }
+        .practice-dock-current { min-width:58px; color:#94a3b8; font-size:10px; font-weight:800; text-align:center; white-space:nowrap; }
+        .practice-match-select { width:100%; min-width:0; min-height:42px; appearance:auto; border:1px solid rgba(45,212,191,.35); border-radius:12px; background:#0b1729; padding:9px 11px; color:#ecfeff; font-size:13px; }
+        .practice-match-select:focus { outline:2px solid rgba(94,234,212,.55); outline-offset:2px; }
         .practice-submit-button { position:relative; overflow:hidden; box-shadow:0 8px 28px rgba(45,212,191,.2); transition:transform .25s ease, box-shadow .25s ease, filter .25s ease; }
         .practice-submit-button::before { position:absolute; inset:0; content:""; background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.32) 48%,transparent 72%); transform:translateX(-130%); transition:transform .65s ease; }
         .practice-submit-button:hover { transform:translateY(-2px); box-shadow:0 14px 34px rgba(45,212,191,.3); filter:saturate(1.12); }
         .practice-submit-button:hover::before { transform:translateX(130%); }
-        .practice-modal-backdrop { animation:practice-fade .25s ease both; }
-        .practice-modal-card { background:radial-gradient(circle at 50% 0%,rgba(20,184,166,.16),transparent 42%),linear-gradient(150deg,rgba(15,27,48,.98),rgba(4,9,19,.99)); box-shadow:0 35px 100px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08); animation:practice-pop .42s cubic-bezier(.16,1,.3,1) both; }
-        .practice-trophy { animation:practice-trophy-float 3.5s ease-in-out infinite; }
-        .practice-confetti-piece { animation:practice-confetti-fall 3.5s ease-in calc(var(--i, 0) * 1ms) infinite; }
-        .practice-confetti-piece:nth-child(3n) { animation-duration:4.2s; border-radius:2px; }
-        .practice-confetti-piece:nth-child(3n + 1) { animation-duration:3s; }
+        .practice-modal-backdrop { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; overflow-y:auto; padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); background:rgba(1,5,14,.84); backdrop-filter:blur(8px); animation:practice-fade .18s ease both; }
+        .practice-modal-card { width:100%; max-width:32rem; max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y:auto; margin:auto; background:radial-gradient(circle at 50% 0%,rgba(20,184,166,.16),transparent 42%),linear-gradient(150deg,rgba(15,27,48,.98),rgba(4,9,19,.99)); box-shadow:0 28px 70px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08); animation:practice-pop .28s cubic-bezier(.16,1,.3,1) both; }
+        .practice-trophy { animation:none; }
+        .practice-confetti-piece { animation:practice-confetti-fall 2.6s ease-in calc(var(--i, 0) * 18ms) 1 both; }
+        .practice-confetti-piece:nth-child(3n) { border-radius:2px; }
         @keyframes practice-rise { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
         @keyframes practice-fade { from { opacity:0; } to { opacity:1; } }
         @keyframes practice-pop { from { opacity:0; transform:translateY(18px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
@@ -655,23 +747,35 @@ export function IeltsPracticePage() {
         @keyframes practice-timer-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(251,113,133,.0); } 50% { box-shadow:0 0 0 5px rgba(251,113,133,.09); } }
         @keyframes practice-trophy-float { 0%,100% { transform:translateY(0) rotate(-2deg); } 50% { transform:translateY(-6px) rotate(2deg); } }
         @keyframes practice-confetti-fall { 0% { transform:translate3d(0,-5vh,0) rotate(0); opacity:0; } 12% { opacity:1; } 100% { transform:translate3d(22px,110vh,0) rotate(540deg); opacity:0; } }
-        @media (max-width: 640px) {
+        @media (max-width: 767px) {
           .practice-overview { grid-template-columns:1fr; gap:18px; padding:22px 20px 18px; }
           .practice-overview-stats { justify-content:space-between; }
           .practice-stat strong { font-size:23px; }
           .practice-eyebrow { font-size:8px; }
-          .practice-dock { padding-bottom:max(12px, env(safe-area-inset-bottom)); }
-          .practice-part-tab { padding:8px 10px; }
           .practice-overview-copy p { font-size:12px; }
+          .practice-dock { padding:9px 12px calc(9px + env(safe-area-inset-bottom)); }
+          .practice-dock-inner { display:grid; grid-template-columns:minmax(0,1fr); gap:8px; }
+          .practice-part-navigation { width:100%; gap:7px; padding:1px 1px 5px; scroll-snap-type:x proximity; }
+          .practice-part-tab { min-width:100px; min-height:40px; padding:8px 11px; scroll-snap-align:start; }
+          .practice-part-count { font-size:9px; }
+          .practice-dock-actions { width:100%; justify-content:space-between; gap:8px; }
+          .practice-dock-stepper { gap:6px; }
+          .practice-dock-stepper button { width:38px; height:38px; }
+          .practice-dock-current { font-size:9px; min-width:52px; }
+          .practice-submit-button, .practice-dock-result { min-height:40px; padding-left:15px; padding-right:15px; font-size:12px; }
+          .practice-confetti-piece { display:none; }
+          .practice-modal-backdrop { align-items:flex-start; padding-top:max(14px, env(safe-area-inset-top)); }
+          .practice-modal-card { margin:auto 0; padding:22px; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .ielts-practice-page *, .ielts-practice-page *::before, .ielts-practice-page *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; }
+          .ielts-practice-page *, .ielts-practice-page *::before, .ielts-practice-page *::after,
+          .practice-modal-backdrop, .practice-modal-backdrop * { animation:none !important; scroll-behavior:auto !important; transition:none !important; }
         }
       `}</style>
 
       {/* Верхняя анимированная плавная панель волн */}
 
-      <div className="practice-header relative mb-6 overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900/70 p-5 shadow-2xl backdrop-blur-2xl sm:p-7">
+      <div className="practice-header relative mb-6 overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900/70 p-5 shadow-2xl sm:p-7">
 
         <div className="practice-orb practice-orb-one absolute -right-16 -top-16 size-64 rounded-full bg-teal/15 blur-3xl" />
 
@@ -709,7 +813,7 @@ export function IeltsPracticePage() {
 
               <span className="practice-random-badge inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3.5 py-2 text-xs font-bold text-teal shadow-inner">
 
-                <Shuffle className="size-3.5 animate-spin" />
+                <Shuffle className="size-3.5" />
 
                 Случайный вариант
 
@@ -717,13 +821,15 @@ export function IeltsPracticePage() {
 
             )}
 
-            <span className={`practice-timer inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-bold text-white shadow-lg ${secondsLeft <= 300 ? "practice-timer-critical" : "border-white/10 bg-white/5"}`}>
-
-              <Clock className="size-4 text-teal" />
-
-              <span className="mr-1 text-[9px] font-black tracking-[0.18em] text-slate-400">TIME</span><span className="tracking-widest">{formatTime(secondsLeft)}</span>
-
-            </span>
+            <PracticeTimer
+              initialSeconds={totalMinutes * 60}
+              resetKey={timerResetKey}
+              paused={submitted}
+              onExpire={() => {
+                setSubmitted(true);
+                setShowModal(true);
+              }}
+            />
 
           </div>
 
@@ -798,13 +904,13 @@ export function IeltsPracticePage() {
         </div>
       </section>
 
-      {showModal && (
+      {showModal && typeof document !== "undefined" && createPortal(
 
-        <div className="practice-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+        <div className="practice-modal-backdrop" role="presentation">
 
           <div className="practice-confetti pointer-events-none fixed inset-0 overflow-hidden">
 
-            {Array.from({ length: 45 }).map((_, i) => (
+            {Array.from({ length: 24 }).map((_, i) => (
 
               <span
 
@@ -833,7 +939,7 @@ export function IeltsPracticePage() {
           </div>
 
 
-          <div className="practice-modal-card relative z-10 w-full max-w-lg rounded-[2rem] border border-teal/30 bg-slate-950/95 p-7 text-mist shadow-2xl sm:p-9">
+          <div className="practice-modal-card relative z-10 rounded-[2rem] border border-teal/30 bg-slate-950/95 p-7 text-mist shadow-2xl sm:p-9" role="dialog" aria-modal="true" aria-labelledby="practice-result-title">
 
             <div className="text-center">
 
@@ -843,10 +949,8 @@ export function IeltsPracticePage() {
 
               </span>
 
-              <p className="text-xs font-black uppercase tracking-widest text-teal">
-
+              <p id="practice-result-title" className="text-xs font-black uppercase tracking-widest text-teal">
                 РЕЗУЛЬТАТ ТРЕНИРОВКИ
-
               </p>
 
 
@@ -913,8 +1017,7 @@ export function IeltsPracticePage() {
                   setShowModal(false);
 
                   setActivePartIndex(0);
-
-                  setSecondsLeft(totalMinutes * 60);
+                  setTimerResetKey((key) => key + 1);
 
                 }}
 
@@ -932,14 +1035,14 @@ export function IeltsPracticePage() {
 
           </div>
 
-        </div>
-
+        </div>,
+        document.body,
       )}
 
 
       {/* Карточка текущей части */}
 
-      <div className="practice-section-card rounded-[2rem] border border-white/10 bg-slate-900/65 p-6 shadow-xl backdrop-blur-2xl sm:p-8">
+      <div className="practice-section-card rounded-[2rem] border border-white/10 bg-slate-900/65 p-6 shadow-xl sm:p-8">
 
         <div className="flex flex-wrap items-center justify-between gap-2">
 
@@ -977,7 +1080,7 @@ export function IeltsPracticePage() {
 
             <div className="mb-2 flex items-center gap-2 text-xs font-bold text-teal">
 
-              <Volume2 className="size-4 animate-pulse" />
+              <Volume2 className="size-4" />
 
               Аудиодорожка к заданию
 
@@ -1020,170 +1123,170 @@ export function IeltsPracticePage() {
         {hasInlineNotes && renderNotesWithInputs(currentSection)}
 
 
-        {/* Choice Q11-15, Q21-24 */}
-
+        {/* Single-choice questions and shared two-answer groups */}
         {choiceQuestions.length > 0 && (
-
-          <div className="practice-question-panel space-y-5 rounded-[2rem] border border-white/10 bg-slate-900/65 p-6 shadow-xl backdrop-blur-2xl sm:p-7">
-
-            {choiceQuestions.map((q) => {
-
-              const userVal = answers[q.id] ?? "";
-
-              const isCorrect = checkAnswer(q, currentSection);
-
-
-              return (
-
-                <div key={q.id} className="practice-question-item border-b border-white/8 pb-6 last:border-b-0 last:pb-0">
-
-                  <div className="flex items-start gap-3 text-base font-bold text-white">
-
-                    <span className="inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-xl bg-navy border border-teal/40 text-xs font-extrabold text-teal">
-
-                      {q.number}
-
-                    </span>
-
-                    <span className="leading-snug">{q.prompt}</span>
-
-                  </div>
-
-
-                  <div className="mt-4 space-y-2.5 pl-10">
-
-                    {(q.options ?? []).map((opt, oIdx) => {
-
-                      const letter = LETTERS[oIdx];
-
-                      const cleanText = opt.replace(/^[A-E]\.\s*/, "");
-
-                      const isSelected = userVal.toUpperCase() === letter;
-
-
-                      return (
-
-                        <label
-
-                          key={letter}
-
-                          className={`practice-option flex cursor-pointer items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-sm transition-all duration-300 ${
-
-                            isSelected
-
-                              ? "border-teal bg-teal/10 text-white font-bold shadow-md shadow-teal/10"
-
-                              : "border-teal/15 bg-navy/40 text-mist hover:border-teal/40 hover:bg-navy/70"
-
-                          }`}
-
-                        >
-
-                          <span
-
-                            className={`inline-flex size-7 shrink-0 items-center justify-center rounded-xl text-xs font-black transition-all ${
-
-                              isSelected
-
-                                ? "bg-teal text-ink shadow-sm"
-
-                                : "bg-navy-3 text-teal border border-teal/30"
-
-                            }`}
-
-                          >
-
-                            {letter}
-
-                          </span>
-
-                          <input
-
-                            type="radio"
-
-                            name={q.id}
-
-                            disabled={submitted}
-
-                            checked={isSelected}
-
-                            onChange={() =>
-
-                              setAnswers((prev) => ({ ...prev, [q.id]: letter }))
-
-                            }
-
-                            className="hidden"
-
-                          />
-
-                          <span className="flex-1">{cleanText}</span>
-
-                        </label>
-
-                      );
-
-                    })}
-
-                  </div>
-
-
-                  {submitted && (
-
-                    <div
-
-                      className={`mt-4 ml-10 rounded-2xl p-4 text-xs transition-all ${
-
-                        isCorrect
-
-                          ? "bg-emerald-500/15 text-emerald-200 border border-emerald-500/30"
-
-                          : "bg-rose-500/15 text-rose-200 border border-rose-500/30"
-
-                      }`}
-
-                    >
-
-                      {isCorrect ? (
-
-                        <span className="font-extrabold flex items-center gap-1.5 text-emerald-300 text-sm mb-1">
-
-                          <CheckCircle2 className="size-4" /> Верно!
-
+          <div className="practice-question-panel space-y-5 rounded-[2rem] border border-white/10 bg-slate-900/65 p-6 shadow-xl sm:p-7">
+            {choiceRenderItems.map((item) => {
+              if (item.kind === "pair") {
+                const pair = item.questions;
+                const [firstQuestion, secondQuestion] = pair;
+                const selectedLetters = new Set(
+                  pair
+                    .map((question) => (answers[question.id] ?? "").trim().toUpperCase())
+                    .filter(Boolean),
+                );
+                const options = firstQuestion.options?.length
+                  ? firstQuestion.options
+                  : secondQuestion.options ?? [];
+                const pairIsCorrect = pair.every((question) => checkAnswer(question, currentSection));
+
+                return (
+                  <section
+                    key={`multi-${firstQuestion.number}-${secondQuestion.number}`}
+                    className="practice-question-item rounded-2xl border border-teal/20 bg-slate-950/35 p-4 sm:p-5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex min-h-8 items-center justify-center rounded-xl border border-teal/40 bg-navy px-3 text-xs font-black text-teal">
+                          {firstQuestion.number}–{secondQuestion.number}
                         </span>
-
-                      ) : (
-
-                        <span className="font-extrabold flex items-center gap-1.5 text-rose-300 text-sm mb-1">
-
-                          <XCircle className="size-4" /> Ошибка. Правильный ответ: {q.answer}
-
+                        <span className="text-xs font-black uppercase tracking-[0.12em] text-teal">
+                          Выберите два варианта
                         </span>
-
-                      )}
-
-                      <p className="opacity-90 leading-relaxed mt-1">{q.explanation}</p>
-
+                      </div>
+                      <span className={`rounded-full border px-3 py-1 text-xs font-bold tabular-nums ${selectedLetters.size === 2 ? "border-teal/50 bg-teal/10 text-teal" : "border-white/10 bg-white/5 text-slate-400"}`}>
+                        {selectedLetters.size} / 2 выбрано
+                      </span>
                     </div>
 
+                    <p className="mt-4 text-base font-bold leading-relaxed text-white">
+                      {firstQuestion.prompt}
+                    </p>
+                    {secondQuestion.prompt !== firstQuestion.prompt && (
+                      <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                        {secondQuestion.prompt}
+                      </p>
+                    )}
+
+                    <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                      {options.map((option, index) => {
+                        const letter = LETTERS[index];
+                        const isSelected = selectedLetters.has(letter);
+                        const isLocked = submitted || (!isSelected && selectedLetters.size >= 2);
+                        const cleanText = option.replace(/^[A-H]\.\s*/, "");
+
+                        return (
+                          <label
+                            key={letter}
+                            className={`practice-option flex min-h-14 items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors ${
+                              isSelected
+                                ? "border-teal bg-teal/10 font-bold text-white shadow-md shadow-teal/10"
+                                : "border-white/10 bg-slate-950/50 text-slate-200"
+                            } ${isLocked ? "cursor-not-allowed opacity-65" : "cursor-pointer"}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isLocked}
+                              onChange={() => toggleTwoAnswerOption(pair, letter)}
+                              className="size-4 shrink-0 accent-teal"
+                              aria-label={`Вариант ${letter}`}
+                            />
+                            <span className={`inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-black ${isSelected ? "bg-teal text-ink" : "border border-teal/30 bg-navy text-teal"}`}>
+                              {letter}
+                            </span>
+                            <span className="flex-1">{cleanText}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {submitted && (
+                      <div className={`mt-4 space-y-3 rounded-xl border p-4 text-xs ${pairIsCorrect ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-100" : "border-rose-500/25 bg-rose-500/10 text-rose-100"}`}>
+                        <p className="font-extrabold text-sm">
+                          {pairIsCorrect ? "Верно! Оба ответа правильные." : `Правильные варианты: ${pair.map((question) => question.answer).join(", ")}`}
+                        </p>
+                        {pair.map((question) => (
+                          <p key={question.id} className="leading-relaxed">
+                            <strong>Q{question.number}:</strong> {question.explanation}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                );
+              }
+
+              const question = item.question;
+              const userVal = answers[question.id] ?? "";
+              const isCorrect = checkAnswer(question, currentSection);
+
+              return (
+                <div key={question.id} className="practice-question-item border-b border-white/8 pb-6 last:border-b-0 last:pb-0">
+                  <div className="flex items-start gap-3 text-base font-bold text-white">
+                    <span className="inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-xl bg-navy border border-teal/40 text-xs font-extrabold text-teal">
+                      {question.number}
+                    </span>
+                    <span className="leading-snug">{question.prompt}</span>
+                  </div>
+
+                  <div className="mt-4 space-y-2.5 pl-10">
+                    {(question.options ?? []).map((option, optionIndex) => {
+                      const letter = LETTERS[optionIndex];
+                      const cleanText = option.replace(/^[A-E]\.\s*/, "");
+                      const isSelected = userVal.toUpperCase() === letter;
+
+                      return (
+                        <label
+                          key={letter}
+                          className={`practice-option flex cursor-pointer items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-sm transition-all duration-300 ${
+                            isSelected
+                              ? "border-teal bg-teal/10 text-white font-bold shadow-md shadow-teal/10"
+                              : "border-teal/15 bg-navy/40 text-mist hover:border-teal/40 hover:bg-navy/70"
+                          }`}
+                        >
+                          <span className={`inline-flex size-7 shrink-0 items-center justify-center rounded-xl text-xs font-black transition-all ${isSelected ? "bg-teal text-ink shadow-sm" : "bg-navy-3 text-teal border border-teal/30"}`}>
+                            {letter}
+                          </span>
+                          <input
+                            type="radio"
+                            name={question.id}
+                            disabled={submitted}
+                            checked={isSelected}
+                            onChange={() => setAnswers((previous) => ({ ...previous, [question.id]: letter }))}
+                            className="sr-only"
+                          />
+                          <span className="flex-1">{cleanText}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {submitted && (
+                    <div className={`mt-4 ml-10 rounded-2xl p-4 text-xs ${isCorrect ? "bg-emerald-500/15 text-emerald-200 border border-emerald-500/30" : "bg-rose-500/15 text-rose-200 border border-rose-500/30"}`}>
+                      {isCorrect ? (
+                        <span className="mb-1 flex items-center gap-1.5 text-sm font-extrabold text-emerald-300">
+                          <CheckCircle2 className="size-4" /> Верно!
+                        </span>
+                      ) : (
+                        <span className="mb-1 flex items-center gap-1.5 text-sm font-extrabold text-rose-300">
+                          <XCircle className="size-4" /> Ошибка. Правильный ответ: {question.answer}
+                        </span>
+                      )}
+                      <p className="mt-1 leading-relaxed opacity-90">{question.explanation}</p>
+                    </div>
                   )}
-
                 </div>
-
               );
-
             })}
-
           </div>
-
         )}
-
 
         {/* Matrix Q16-20 (Farley House Map) */}
 
         {matrixQuestions.length > 0 && (
 
-          <div className="practice-question-panel rounded-[2rem] border border-white/10 bg-slate-900/65 p-6 shadow-xl backdrop-blur-2xl sm:p-7">
+          <div className="practice-question-panel rounded-[2rem] border border-white/10 bg-slate-900/65 p-6 shadow-xl sm:p-7">
 
             <h3 className="mb-5 text-lg font-black text-white">Farley House Map Matrix</h3>
 
@@ -1397,7 +1500,7 @@ export function IeltsPracticePage() {
 
         {matchingQuestions.length > 0 && (
 
-          <div className="practice-question-panel rounded-[2rem] border border-white/10 bg-slate-900/65 p-6 shadow-xl backdrop-blur-2xl sm:p-7">
+          <div className="practice-question-panel rounded-[2rem] border border-white/10 bg-slate-900/65 p-6 shadow-xl sm:p-7">
 
             <h3 className="mb-5 text-lg font-black text-white">
 
@@ -1431,80 +1534,63 @@ export function IeltsPracticePage() {
 
                         <span>• {q.prompt}</span>
 
-                        <div
-
-                          onDragOver={(e) => e.preventDefault()}
-
-                          onDrop={() => {
-
-                            if (!submitted && draggedLetter) {
-
-                              setAnswers((prev) => ({ ...prev, [q.id]: draggedLetter }));
-
-                              setDraggedLetter(null);
-
-                            }
-
-                          }}
-
-                          className={`practice-dropzone inline-flex min-h-10 min-w-48 items-center gap-2 rounded-xl border border-dashed px-3 py-1 text-xs transition-all ${
-
-                            submitted
-
-                              ? isCorrect
-
-                                ? "border-emerald-500 bg-emerald-500/20 text-emerald-200"
-
-                                : "border-rose-500 bg-rose-500/20 text-rose-200"
-
-                              : userVal
-
-                              ? "border-teal bg-teal/20 font-bold text-teal"
-
-                              : "border-teal/30 bg-navy text-mist/60"
-
-                          }`}
-
-                        >
-
-                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-lg bg-navy border border-teal/40 text-[10px] font-black text-teal">
-
-                            {q.number}
-
-                          </span>
-
-                          <span className="flex-1 truncate">{matchedFullOption || "Drop answer here"}</span>
-
-                          {!submitted && userVal && (
-
-                            <button
-
-                              type="button"
-
-                              onClick={() =>
-
-                                setAnswers((prev) => {
-
-                                  const copy = { ...prev };
-
-                                  delete copy[q.id];
-
-                                  return copy;
-
-                                })
-
+                        <div className="flex w-full flex-col gap-2 sm:w-auto">
+                          <div
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={() => {
+                              if (!submitted && draggedLetter) {
+                                assignMatchingAnswer(q.id, draggedLetter);
+                                setDraggedLetter(null);
                               }
+                            }}
+                            className={`practice-dropzone hidden min-h-10 min-w-48 items-center gap-2 rounded-xl border border-dashed px-3 py-1 text-xs transition-all md:inline-flex ${
+                              submitted
+                                ? isCorrect
+                                  ? "border-emerald-500 bg-emerald-500/20 text-emerald-200"
+                                  : "border-rose-500 bg-rose-500/20 text-rose-200"
+                                : userVal
+                                  ? "border-teal bg-teal/20 font-bold text-teal"
+                                  : "border-teal/30 bg-navy text-mist/60"
+                            }`}
+                          >
+                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-lg bg-navy border border-teal/40 text-[10px] font-black text-teal">
+                              {q.number}
+                            </span>
+                            <span className="flex-1 truncate">{matchedFullOption || "Drop answer here"}</span>
+                            {!submitted && userVal && (
+                              <button
+                                type="button"
+                                aria-label={`Очистить ответ ${q.number}`}
+                                onClick={() => setAnswers((prev) => {
+                                  const copy = { ...prev };
+                                  delete copy[q.id];
+                                  return copy;
+                                })}
+                                className="ml-auto text-mist/50 hover:text-rose-400 font-bold"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
 
-                              className="ml-auto text-mist/50 hover:text-rose-400 font-bold"
-
-                            >
-
-                              ✕
-
-                            </button>
-
-                          )}
-
+                          <select
+                            className={`practice-match-select md:hidden ${submitted ? (isCorrect ? "border-emerald-500 text-emerald-200" : "border-rose-500 text-rose-200") : ""}`}
+                            value={userVal}
+                            disabled={submitted}
+                            aria-label={`Ответ для вопроса ${q.number}`}
+                            onChange={(event) => assignMatchingAnswer(q.id, event.target.value)}
+                          >
+                            <option value="">Выберите вариант для вопроса {q.number}</option>
+                            {(currentSection.sharedOptions ?? []).map((option) => (
+                              <option
+                                key={option}
+                                value={option.charAt(0)}
+                                disabled={isMatchingOptionUsed(option.charAt(0), q.id)}
+                              >
+                                {option}{isMatchingOptionUsed(option.charAt(0), q.id) ? " · уже использован" : ""}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                       </div>
@@ -1543,12 +1629,10 @@ export function IeltsPracticePage() {
               </div>
 
 
-              <div className="rounded-2xl border border-teal/20 bg-navy/80 p-5 shadow-inner lg:col-span-6">
+              <div className="hidden rounded-2xl border border-teal/20 bg-navy/80 p-5 shadow-inner md:block lg:col-span-6">
 
                 <p className="mb-4 text-xs italic text-teal/80">
-
-                  💡 Перетащите вариант мышкой в нужный блок слева или просто нажмите на него, чтобы заполнить следующий пустой вопрос.
-
+                  💡 Каждый вариант можно использовать только один раз. На телефоне выберите ответ в меню под вопросом; на компьютере перетащите вариант в нужный блок.
                 </p>
 
                 <div className="space-y-2.5">
@@ -1556,41 +1640,38 @@ export function IeltsPracticePage() {
                   {(currentSection.sharedOptions ?? []).map((opt) => {
 
                     const letter = opt.charAt(0);
+                    const isUsed = isMatchingOptionUsed(letter);
+                    const usedQuestion = matchingQuestions.find(
+                      (question) => (answers[question.id] ?? "").trim().toUpperCase() === letter,
+                    );
 
                     return (
-
                       <div
-
                         key={opt}
-
-                        draggable={!submitted}
-
-                        onDragStart={() => setDraggedLetter(letter)}
-
-                        onClick={() => {
-
-                          if (submitted) return;
-
-                          const nextEmpty = matchingQuestions.find((mq) => !answers[mq.id]);
-
-                          if (nextEmpty) {
-
-                            setAnswers((prev) => ({ ...prev, [nextEmpty.id]: letter }));
-
+                        draggable={!submitted && !isUsed}
+                        aria-disabled={submitted || isUsed}
+                        onDragStart={(event) => {
+                          if (submitted || isUsed) {
+                            event.preventDefault();
+                            return;
                           }
-
+                          setDraggedLetter(letter);
                         }}
-
-                        className="practice-match-option cursor-grab rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:border-teal/50 active:cursor-grabbing"
-
+                        onClick={() => {
+                          if (submitted || isUsed) return;
+                          const nextEmpty = matchingQuestions.find((question) => !answers[question.id]);
+                          if (nextEmpty) assignMatchingAnswer(nextEmpty.id, letter);
+                        }}
+                        className={`practice-match-option rounded-xl border px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all ${
+                          isUsed
+                            ? "cursor-not-allowed border-teal/20 bg-teal/5 opacity-45"
+                            : "cursor-grab border-white/10 bg-white/5 hover:border-teal/50 active:cursor-grabbing"
+                        }`}
                       >
-
                         <span className="mr-2 font-black text-teal">{letter}.</span>
-
                         {opt.replace(/^[A-H]\.\s*/, "")}
-
+                        {isUsed && <span className="ml-2 text-[10px] font-bold text-teal">Использован в Q{usedQuestion?.number}</span>}
                       </div>
-
                     );
 
                   })}
@@ -1641,186 +1722,75 @@ export function IeltsPracticePage() {
       </div>
 
 
-      {/* НИЖНЯЯ ПАНЕЛЬ С АНИМАЦИЕЙ И СТИЛЬНЫМ SUBMIT */}
-
-      <div className="practice-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/85 px-4 py-3 text-mist shadow-2xl backdrop-blur-2xl sm:px-5 sm:py-3.5">
-
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
-
-          <div className="flex items-center gap-2">
-
-            <button
-
-              type="button"
-
-              disabled={activePartIndex === 0}
-
-              onClick={() => setActivePartIndex((i) => Math.max(0, i - 1))}
-
-              className="inline-flex size-10 items-center justify-center rounded-2xl bg-navy-3 border border-teal/30 text-white disabled:opacity-30 hover:border-teal transition-all"
-
-            >
-
-              <ArrowLeft className="size-4 text-teal" />
-
-            </button>
-
-            <button
-
-              type="button"
-
-              disabled={activePartIndex === currentTest.sections.length - 1}
-
-              onClick={() =>
-
-                setActivePartIndex((i) => Math.min(currentTest.sections.length - 1, i + 1))
-
-              }
-
-              className="inline-flex size-10 items-center justify-center rounded-2xl bg-navy-3 border border-teal/30 text-white disabled:opacity-30 hover:border-teal transition-all"
-
-            >
-
-              <ArrowRight className="size-4 text-teal" />
-
-            </button>
-
-          </div>
-
-
-          <div className="flex flex-1 flex-wrap items-center justify-center gap-2.5 overflow-x-auto py-1">
-
+      {/* Responsive part navigation and test controls */}
+      <div className="practice-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/95 px-4 py-3 text-mist shadow-2xl sm:px-5 sm:py-3.5">
+        <div className="practice-dock-inner mx-auto max-w-7xl">
+          <nav ref={partNavigationRef} className="practice-part-navigation" aria-label="Переход между частями теста">
             {currentTest.sections.map((sec, sIdx) => {
-
               const isActive = sIdx === activePartIndex;
+              const sectionAnswered = sec.questions.filter((question) => Boolean((answers[question.id] ?? "").trim())).length;
 
               return (
-
-                <div
-
-                  key={sIdx}
-
+                <button
+                  key={`${currentTest.id}-${sIdx}`}
+                  ref={isActive ? activePartButtonRef : undefined}
+                  type="button"
+                  aria-current={isActive ? "step" : undefined}
+                  aria-pressed={isActive}
                   onClick={() => setActivePartIndex(sIdx)}
-
-                  className={`practice-part-tab flex cursor-pointer items-center gap-2.5 rounded-2xl border px-4 py-2 text-xs transition-all duration-300 ${
-
-                    isActive
-
-                      ? "border-teal bg-teal/20 font-bold shadow-lg shadow-teal/10 scale-105"
-
-                      : "border-teal/20 bg-navy-3/80 hover:bg-navy-3"
-
-                  }`}
-
+                  className="practice-part-tab"
                 >
-
-                  <span className="font-extrabold text-white">Part {sIdx + 1}:</span>
-
-                  {isActive ? (
-
-                    <div className="flex items-center gap-1">
-
-                      {sec.questions.map((q) => {
-
-                        const answered = Boolean((answers[q.id] ?? "").trim());
-
-                        const correct = checkAnswer(q, sec);
-
-                        return (
-
-                          <span
-
-                            key={q.id}
-
-                            className={`inline-flex size-6 items-center justify-center rounded-lg border text-[11px] font-black transition-all ${
-
-                              submitted
-
-                                ? correct
-
-                                  ? "border-emerald-500 bg-emerald-500 text-ink shadow-sm"
-
-                                  : "border-rose-500 bg-rose-500 text-white shadow-sm"
-
-                                : answered
-
-                                ? "border-teal bg-teal text-ink shadow-sm scale-110"
-
-                                : "border-teal/30 bg-navy text-mist"
-
-                            }`}
-
-                          >
-
-                            {q.number}
-
-                          </span>
-
-                        );
-
-                      })}
-
-                    </div>
-
-                  ) : (
-
-                    <span className="italic text-mist/60">
-
-                      {sec.questions.length} вопросов
-
-                    </span>
-
-                  )}
-
-                </div>
-
+                  <span>Part {sIdx + 1}</span>
+                  <span className="practice-part-count">{sectionAnswered}/{sec.questions.length}</span>
+                </button>
               );
-
             })}
+          </nav>
 
+          <div className="practice-dock-actions">
+            <div className="practice-dock-stepper">
+              <button
+                type="button"
+                aria-label="Предыдущая часть"
+                disabled={activePartIndex === 0}
+                onClick={() => setActivePartIndex((index) => Math.max(0, index - 1))}
+                className="inline-flex size-10 items-center justify-center rounded-xl border border-teal/30 bg-navy-3 text-white transition-colors hover:border-teal disabled:opacity-30"
+              >
+                <ArrowLeft className="size-4 text-teal" />
+              </button>
+              <span className="practice-dock-current">{activePartIndex + 1} / {currentTest.sections.length}</span>
+              <button
+                type="button"
+                aria-label="Следующая часть"
+                disabled={activePartIndex === currentTest.sections.length - 1}
+                onClick={() => setActivePartIndex((index) => Math.min(currentTest.sections.length - 1, index + 1))}
+                className="inline-flex size-10 items-center justify-center rounded-xl border border-teal/30 bg-navy-3 text-white transition-colors hover:border-teal disabled:opacity-30"
+              >
+                <ArrowRight className="size-4 text-teal" />
+              </button>
+            </div>
+
+            {!submitted ? (
+              <button
+                type="button"
+                onClick={handleFinish}
+                className="practice-submit-button tap group relative inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal to-sky-400 px-6 text-sm font-extrabold text-ink shadow-lg shadow-teal/20"
+              >
+                <span>Submit Test</span>
+                <Send className="size-4 transition-transform group-hover:translate-x-1" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                className="practice-dock-result tap inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-teal px-6 text-sm font-extrabold text-ink shadow-lg shadow-teal/20 transition-transform hover:scale-[1.02]"
+              >
+                <Trophy className="size-4" />
+                Band {getIELTSBand(scoreSummary.correct)} ({scoreSummary.correct}/{scoreSummary.total})
+              </button>
+            )}
           </div>
-
-
-          {!submitted ? (
-
-            <button
-
-              type="button"
-
-              onClick={handleFinish}
-
-              className="practice-submit-button tap group relative inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-teal to-sky-400 px-6 text-sm font-extrabold text-ink shadow-lg shadow-teal/20"
-
-            >
-
-              <span>Submit Test</span>
-
-              <Send className="size-4 transition-transform group-hover:translate-x-1" />
-
-            </button>
-
-          ) : (
-
-            <button
-
-              type="button"
-
-              onClick={() => setShowModal(true)}
-
-              className="tap inline-flex h-11 items-center gap-2 rounded-2xl bg-teal px-6 text-sm font-extrabold text-ink shadow-lg shadow-teal/20 hover:scale-105 transition-all"
-
-            >
-
-              <Trophy className="size-4" />
-
-              Band {getIELTSBand(scoreSummary.correct)} ({scoreSummary.correct}/{scoreSummary.total})
-
-            </button>
-
-          )}
-
         </div>
-
       </div>
 
     </Page>
