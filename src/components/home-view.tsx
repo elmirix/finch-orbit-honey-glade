@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { examList, getTopic } from "@/data/catalog";
 import { topicsLabel } from "@/lib/format";
 import { ExamLink, TopicLink } from "@/components/links";
@@ -47,8 +47,14 @@ function countTopics(
 }
 
 export function HomeView() {
-  // Добавили состояние для открытия окна
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Проверяем, зарегистрирован ли пользователь
+  useEffect(() => {
+    const user = localStorage.getItem('click_user');
+    if (user) setIsLoggedIn(true);
+  }, []);
 
   const hydrated = useProgressHydrated();
   const topics = useProgress((state) => state.topics);
@@ -80,13 +86,32 @@ export function HomeView() {
           вопросы — без общего переключателя.
         </p>
 
-        {/* НОВАЯ КНОПКА РЕГИСТРАЦИИ */}
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="mt-6 rounded-full bg-teal px-8 py-3 font-semibold text-ink shadow-lg transition-transform hover:scale-105 active:scale-95"
-        >
-          Создать аккаунт
-        </button>
+        {/* ЛОГИКА КНОПОК НА ГЛАВНОЙ */}
+        <div className="mt-6 flex flex-wrap gap-4">
+          {isLoggedIn ? (
+            <>
+              <Link 
+                to="/dashboard"
+                className="rounded-full bg-teal px-8 py-3 font-semibold text-ink shadow-lg transition-transform hover:scale-105 active:scale-95"
+              >
+                Перейти в кабинет
+              </Link>
+              <Link 
+                to="/profile"
+                className="rounded-full border border-line-dark px-8 py-3 font-semibold text-mist transition-colors hover:border-teal hover:text-teal"
+              >
+                Мой профиль
+              </Link>
+            </>
+          ) : (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="rounded-full bg-teal px-8 py-3 font-semibold text-ink shadow-lg transition-transform hover:scale-105 active:scale-95"
+            >
+              Создать аккаунт
+            </button>
+          )}
+        </div>
 
         <dl className="mt-8 grid max-w-lg grid-cols-3 gap-3">
           {[
@@ -220,7 +245,7 @@ export function HomeView() {
         не смешивает задания разных экзаменов.
       </p>
 
-      {/* ВЫЗОВ ОКНА РЕГИСТРАЦИИ */}
+      {/* Вызов окна регистрации */}
       <RegisterModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </Page>
   );

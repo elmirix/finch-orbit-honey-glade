@@ -11,8 +11,18 @@ export function RegisterModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Сохраняем имя в память браузера (если пустое, пишем "Студент")
-    localStorage.setItem('click_user_name', name.trim() || 'Студент')
+    
+    // Создаем объект пользователя
+    const user = {
+      name: name.trim() || 'Студент',
+      email: email,
+      isLoggedIn: true,
+      joinedAt: new Date().toISOString()
+    }
+    
+    // Сохраняем в базу браузера
+    localStorage.setItem('click_user', JSON.stringify(user))
+    
     onClose()
     navigate({ to: '/dashboard' }) 
   }

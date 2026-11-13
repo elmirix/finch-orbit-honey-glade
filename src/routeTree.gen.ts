@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as IeltsIndexRouteImport } from './routes/ielts/index'
 import { Route as IeltsPracticeRouteImport } from './routes/ielts/practice'
 import { Route as IeltsSimulationRouteImport } from './routes/ielts/simulation'
@@ -33,6 +34,11 @@ const IndexRoute = IndexRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IeltsIndexRoute = IeltsIndexRouteImport.update({
@@ -104,6 +110,7 @@ const SatSubjectTopicRoute = SatSubjectTopicRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/ielts/practice': typeof IeltsPracticeRoute
   '/ielts/simulation': typeof IeltsSimulationRoute
   '/ort/simulation': typeof OrtSimulationRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/ielts/practice': typeof IeltsPracticeRoute
   '/ielts/simulation': typeof IeltsSimulationRoute
   '/ort/simulation': typeof OrtSimulationRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/ielts/practice': typeof IeltsPracticeRoute
   '/ielts/simulation': typeof IeltsSimulationRoute
   '/ort/simulation': typeof OrtSimulationRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/profile'
     | '/ielts/practice'
     | '/ielts/simulation'
     | '/ort/simulation'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/profile'
     | '/ielts/practice'
     | '/ielts/simulation'
     | '/ort/simulation'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/profile'
     | '/ielts/practice'
     | '/ielts/simulation'
     | '/ort/simulation'
@@ -210,6 +222,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  ProfileRoute: typeof ProfileRoute
   IeltsPracticeRoute: typeof IeltsPracticeRoute
   IeltsSimulationRoute: typeof IeltsSimulationRoute
   OrtSimulationRoute: typeof OrtSimulationRoute
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ielts/': {
@@ -338,6 +358,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  ProfileRoute: ProfileRoute,
   IeltsPracticeRoute: IeltsPracticeRoute,
   IeltsSimulationRoute: IeltsSimulationRoute,
   OrtSimulationRoute: OrtSimulationRoute,
