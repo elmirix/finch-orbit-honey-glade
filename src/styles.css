@@ -26,7 +26,7 @@
   --color-bad: #fb7185;
   --color-bad-soft: rgba(251, 113, 133, 0.15);
 
-  --radius-card: 1.5rem;
+  --radius-card: 1.75rem;
 }
 
 @layer base {
@@ -75,6 +75,7 @@
     -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
     color: var(--color-ink);
     border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: 28px !important;
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.35),
       inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
@@ -95,6 +96,7 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 9999px;
   }
 
   .tap {
@@ -163,6 +165,7 @@
   -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
   backdrop-filter: blur(18px) saturate(160%) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 28px !important;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
