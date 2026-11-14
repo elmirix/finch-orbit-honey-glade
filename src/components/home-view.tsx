@@ -1,4 +1,3 @@
-
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -11,6 +10,7 @@ import { useProgressHydrated } from "@/components/use-hydrated";
 import { topicKey, useProgress } from "@/store/progress";
 import { DevelopersSection } from "@/components/DevelopersSection";
 import { RegisterModal } from "@/components/RegisterModal";
+import { LoginModal } from "@/components/LoginModal"; // Импорт окна входа
 
 const steps = [
   {
@@ -29,10 +29,6 @@ const steps = [
     text: "10 вопросов и 15 минут на таймере. В конце — балл и разбор ошибок.",
   },
 ];
-
-// Единый класс для кнопок с эффектом матового стекла (Frosted Matte Glass)
-const MATTE_GLASS_BTN =
-  "border border-white/15 bg-white/[0.08] text-mist backdrop-blur-2xl shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition-all hover:border-teal/40 hover:bg-white/[0.14] hover:text-teal active:scale-95";
 
 function countTopics(
   examId: (typeof examList)[number]["id"],
@@ -53,11 +49,12 @@ function countTopics(
 
 export function HomeView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false); // Состояние для окна входа
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Проверяем, зарегистрирован ли пользователь
   useEffect(() => {
-    const user = localStorage.getItem("click_user");
+    const user = localStorage.getItem('click_user');
     if (user) setIsLoggedIn(true);
   }, []);
 
@@ -69,7 +66,8 @@ export function HomeView() {
 
   const subjectCount = examList.reduce((sum, exam) => sum + exam.subjects.length, 0);
   const topicCount = examList.reduce(
-    (sum, exam) => sum + exam.subjects.reduce((inner, subject) => inner + subject.topics.length, 0),
+    (sum, exam) =>
+      sum + exam.subjects.reduce((inner, subject) => inner + subject.topics.length, 0),
     0,
   );
 
@@ -86,38 +84,37 @@ export function HomeView() {
           Click — подготовка к экзаменам
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-slate">
-          Отдельные треки для ОРТ, SAT и IELTS. У каждого экзамена свои предметы, темы и вопросы —
-          без общего переключателя.
+          Отдельные треки для ОРТ, SAT и IELTS. У каждого экзамена свои предметы, темы и
+          вопросы — без общего переключателя.
         </p>
 
-        {/* ЛОГИКА КНОПОК НА ГЛАВНОЙ */}
+        {/* БЛОК С КНОПКАМИ */}
         <div className="mt-6 flex flex-wrap gap-4">
           {isLoggedIn ? (
-            <>
-              <Link
-                to="/dashboard"
-                className="rounded-full bg-teal px-8 py-3 font-semibold text-[#071120] shadow-[0_0_25px_rgba(100,255,218,0.35)] transition-transform hover:scale-105 active:scale-95"
-              >
-                Перейти в кабинет
-              </Link>
-              <Link
-                to="/profile"
-                className={`rounded-full px-8 py-3 font-semibold ${MATTE_GLASS_BTN}`}
-              >
-                Мой профиль
-              </Link>
-            </>
-          ) : (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="rounded-full bg-teal px-8 py-3 font-semibold text-[#071120] shadow-[0_0_25px_rgba(100,255,218,0.35)] transition-transform hover:scale-105 active:scale-95"
+            <Link 
+              to="/dashboard"
+              className="rounded-full bg-teal px-8 py-3 font-semibold text-ink shadow-lg transition-transform hover:scale-105 active:scale-95"
             >
-              Создать аккаунт
-            </button>
+              Перейти в кабинет
+            </Link>
+          ) : (
+            <>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="rounded-full bg-teal px-8 py-3 font-semibold text-ink shadow-lg transition-transform hover:scale-105 active:scale-95"
+              >
+                Создать аккаунт
+              </button>
+              <button 
+                onClick={() => setIsLoginOpen(true)}
+                className="rounded-full border border-line-dark px-8 py-3 font-semibold text-mist transition-colors hover:border-teal hover:text-teal"
+              >
+                Войти
+              </button>
+            </>
           )}
         </div>
 
-        {/* Стеклянные мини-карточки статистики */}
         <dl className="mt-8 grid max-w-lg grid-cols-3 gap-3">
           {[
             ["3", "экзамена"],
@@ -130,7 +127,7 @@ export function HomeView() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.12 + idx * 0.08 }}
               whileHover={{ y: -3 }}
-              className="rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 backdrop-blur-2xl transition-colors hover:border-teal/40 hover:bg-white/[0.1]"
+              className="rounded-2xl border border-line-dark px-3 py-3 transition-colors hover:border-teal/50"
             >
               <dt className="text-xs text-slate">{label}</dt>
               <dd className="mt-1 text-2xl font-semibold text-mist">{value}</dd>
@@ -148,11 +145,11 @@ export function HomeView() {
           className="card mt-8 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <p className="text-xs font-semibold tracking-wide text-teal">Продолжить</p>
-            <p className="mt-1 text-lg font-semibold text-mist">
+            <p className="text-xs font-semibold tracking-wide text-ok">Продолжить</p>
+            <p className="mt-1 text-lg font-semibold">
               {last.subjectTitle}: {resume.topic.title}
             </p>
-            <p className="text-sm text-slate">
+            <p className="text-sm text-muted">
               {examList.find((exam) => exam.id === last.examId)?.title}
             </p>
           </div>
@@ -160,7 +157,7 @@ export function HomeView() {
             examId={last.examId}
             subjectId={last.subjectId}
             topicId={last.topicId}
-            className={`tap inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-semibold hover:scale-105 ${MATTE_GLASS_BTN}`}
+            className="tap inline-flex h-11 items-center justify-center rounded-full bg-navy px-5 text-sm font-semibold text-mist transition-transform hover:scale-105 active:scale-95"
           >
             К теме
           </TopicLink>
@@ -180,29 +177,32 @@ export function HomeView() {
               whileTap={{ scale: 0.99 }}
               className="h-full"
             >
-              <ExamLink examId={exam.id} className="card card-hover flex h-full flex-col p-6">
-                <span className="flex size-12 items-center justify-center rounded-2xl border border-teal/25 bg-teal/10 text-teal backdrop-blur-xl">
+              <ExamLink
+                examId={exam.id}
+                className="card card-hover flex h-full flex-col p-6"
+              >
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-navy text-teal">
                   <Icon name={exam.icon} className="size-6" />
                 </span>
-                <p className="mt-5 text-xs font-semibold tracking-widest text-teal">ЭКЗАМЕН</p>
-                <h2 className="mt-1 text-2xl font-semibold text-mist">{exam.title}</h2>
-                <p className="mt-1 text-sm text-slate">{exam.fullName}</p>
-                <p className="mt-3 text-sm leading-relaxed text-mist/90">{exam.description}</p>
+                <p className="mt-5 text-xs font-semibold tracking-widest text-ok">ЭКЗАМЕН</p>
+                <h2 className="mt-1 text-2xl font-semibold">{exam.title}</h2>
+                <p className="mt-1 text-sm text-muted">{exam.fullName}</p>
+                <p className="mt-3 text-sm leading-relaxed text-ink">{exam.description}</p>
                 <ul className="mt-4 flex flex-wrap gap-2">
                   {exam.subjects.map((subject) => (
                     <li
                       key={subject.id}
-                      className="rounded-full border border-white/12 bg-white/[0.08] px-3 py-1 text-xs font-medium text-mist/90 backdrop-blur-xl"
+                      className="rounded-full bg-line px-2.5 py-1 text-xs font-medium text-ink"
                     >
                       {subject.title}
                     </li>
                   ))}
                 </ul>
-                <p className="mt-auto pt-4 text-xs text-slate">
+                <p className="mt-4 text-xs text-muted">
                   {topicsLabel(progress.total)}
                   {hydrated && progress.done > 0 ? ` · пройдено ${progress.done}` : ""}
                 </p>
-                <span className="tap mt-4 inline-flex h-11 items-center justify-center rounded-full bg-teal px-5 text-sm font-semibold text-[#071120] shadow-[0_0_20px_rgba(100,255,218,0.25)] transition-transform duration-200 hover:brightness-105">
+                <span className="tap mt-5 inline-flex h-11 items-center justify-center rounded-full bg-teal px-5 text-sm font-semibold text-ink transition-transform duration-200 hover:brightness-105">
                   Начать подготовку
                 </span>
               </ExamLink>
@@ -218,7 +218,7 @@ export function HomeView() {
         transition={{ duration: 0.5 }}
         className="card mt-10 p-6 md:p-8"
       >
-        <h2 className="text-xl font-semibold text-mist">Как устроена подготовка</h2>
+        <h2 className="text-xl font-semibold">Как устроена подготовка</h2>
         <ol className="mt-6 grid gap-6 md:grid-cols-3">
           {steps.map((step, index) => (
             <motion.li
@@ -227,11 +227,11 @@ export function HomeView() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
-              className="border-t border-white/10 pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-5 md:first:border-l-0 md:first:pl-0"
+              className="border-t border-line pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-5 md:first:border-l-0 md:first:pl-0"
             >
-              <p className="text-sm font-semibold text-teal">{step.index}</p>
-              <h3 className="mt-2 font-semibold text-mist">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate">{step.text}</p>
+              <p className="text-sm font-semibold text-ok">{step.index}</p>
+              <h3 className="mt-2 font-semibold">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{step.text}</p>
             </motion.li>
           ))}
         </ol>
@@ -239,8 +239,17 @@ export function HomeView() {
 
       <DevelopersSection />
 
-      {/* Вызов окна регистрации */}
+      <p className="mt-8 text-sm text-slate">
+        Прогресс тем сохраняется в этом браузере.{" "}
+        <Link to="/" className="text-teal">
+          Click
+        </Link>{" "}
+        не смешивает задания разных экзаменов.
+      </p>
+
+      {/* ВЫЗОВ ОКОН РЕГИСТРАЦИИ И ВХОДА */}
       <RegisterModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
     </Page>
   );
 }
