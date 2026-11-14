@@ -1,30 +1,52 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { supabase } from '../supabaseClient' // Подключение к базе
 
 export function RegisterModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false) // Для индикатора загрузки
 
   if (!isOpen) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
     
-    // Создаем объект пользователя
-    const user = {
-      name: name.trim() || 'Студент',
-      email: email,
-      isLoggedIn: true,
-      joinedAt: new Date().toISOString()
+    try {
+      // 1. Отправляем данные в настоящую базу Supabase
+      const { error } = await supabase
+        .from('users')
+        .insert([
+          { name: name.trim() || 'Студент', email: email }
+        ])
+
+      // Если база вернула ошибку — прерываем выполнение
+      if (error) throw error
+
+      // 2. Создаем объект пользователя для интерфейса
+      const user = {
+        name: name.trim() || 'Студент',
+        email: email,
+        isLoggedIn: true,
+        joinedAt: new Date().toISOString()
+      }
+      
+      // 3. Сохраняем в локальную базу браузера (чтобы кабинет работал сразу)
+      localStorage.setItem('click_user', JSON.stringify(user))
+      
+      // 4. Закрываем и переходим
+      onClose()
+      navigate({ to: '/dashboard' }) 
+      
+    } catch (error: any) {
+      console.error("Ошибка при регистрации:", error)
+      alert("Не удалось сохранить данные. Проверьте интернет.")
+    } finally {
+      setIsLoading(false) // Выключаем загрузку в любом случае
     }
-    
-    // Сохраняем в базу браузера
-    localStorage.setItem('click_user', JSON.stringify(user))
-    
-    onClose()
-    navigate({ to: '/dashboard' }) 
   }
 
   return (
@@ -47,8 +69,13 @@ export function RegisterModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
             <label className="block text-sm font-medium mb-1 text-slate">Пароль</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3 bg-ink border border-line-dark text-mist rounded-xl focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all" placeholder="••••••••" />
           </div>
-          <button type="submit" className="w-full bg-teal text-ink font-semibold py-3 rounded-full hover:brightness-105 transition-all mt-6">
-            Зарегистрироваться
+          
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-teal text-ink font-semibold py-3 rounded-full hover:brightness-105 transition-all mt-6 disabled:opacity-70 flex justify-center"
+          >
+            {isLoading ? 'Сохранение...' : 'Зарегистрироваться'}
           </button>
         </form>
       </div>
