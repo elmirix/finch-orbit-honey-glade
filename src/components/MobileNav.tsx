@@ -7,13 +7,13 @@ const examLinks = [
   {
     id: "ort",
     title: "ОРТ",
-    subtitle: "Общереспубликанское тестирование",
+    subtitle: "Поступление в вузы Кыргызстана",
     to: "/ort",
   },
   {
     id: "sat",
     title: "SAT",
-    subtitle: "Scholastic Assessment Test",
+    subtitle: "Поступление в зарубежные вузы",
     to: "/sat",
   },
   {
@@ -43,7 +43,6 @@ export function MobileNav() {
     pathname.startsWith("/ort") ||
     pathname.startsWith("/sat") ||
     pathname.startsWith("/ielts");
-  const isDashboard = pathname.startsWith("/dashboard");
   const isProfile = pathname.startsWith("/profile");
 
   return (
@@ -125,7 +124,7 @@ export function MobileNav() {
               }`}
             >
               <span
-                className={`flex h-7 w-12 items-center justify-center rounded-full transition-all ${
+                className={`flex h-7 w-14 items-center justify-center rounded-full transition-all ${
                   isHome && !isExamsOpen
                     ? "border border-teal/30 bg-teal/20 text-teal shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                     : ""
@@ -158,7 +157,7 @@ export function MobileNav() {
               }`}
             >
               <span
-                className={`flex h-7 w-12 items-center justify-center rounded-full transition-all ${
+                className={`flex h-7 w-14 items-center justify-center rounded-full transition-all ${
                   isExams || isExamsOpen
                     ? "border border-teal/30 bg-teal/20 text-teal shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                     : ""
@@ -184,39 +183,6 @@ export function MobileNav() {
 
           <li className="flex-1">
             <Link
-              to="/dashboard"
-              onClick={handleProtectedClick}
-              className={`flex flex-col items-center justify-center gap-0.5 rounded-full py-1 text-[11px] font-medium transition-all ${
-                isDashboard && !isExamsOpen ? "text-teal" : "text-slate hover:text-mist"
-              }`}
-            >
-              <span
-                className={`flex h-7 w-12 items-center justify-center rounded-full transition-all ${
-                  isDashboard && !isExamsOpen
-                    ? "border border-teal/30 bg-teal/20 text-teal shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
-                    : ""
-                }`}
-              >
-                <svg
-                  className="size-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </span>
-              <span>Кабинет</span>
-            </Link>
-          </li>
-
-          <li className="flex-1">
-            <Link
               to="/profile"
               onClick={handleProtectedClick}
               className={`flex flex-col items-center justify-center gap-0.5 rounded-full py-1 text-[11px] font-medium transition-all ${
@@ -224,7 +190,7 @@ export function MobileNav() {
               }`}
             >
               <span
-                className={`flex h-7 w-12 items-center justify-center rounded-full transition-all ${
+                className={`flex h-7 w-14 items-center justify-center rounded-full transition-all ${
                   isProfile && !isExamsOpen
                     ? "border border-teal/30 bg-teal/20 text-teal shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                     : ""

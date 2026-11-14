@@ -9,24 +9,28 @@ import { Page } from "@/components/ui";
 import { useProgressHydrated } from "@/components/use-hydrated";
 import { topicKey, useProgress } from "@/store/progress";
 import { DevelopersSection } from "@/components/DevelopersSection";
+<<<<<<< HEAD
 import { RegisterModal } from "@/components/RegisterModal";
 import { LoginModal } from "@/components/LoginModal"; // Импорт окна входа
+=======
+import { WelcomeOnboarding } from "@/components/WelcomeOnboarding";
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
 
 const steps = [
   {
     index: "01",
-    title: "Выберите экзамен",
-    text: "ОРТ, SAT и IELTS — три отдельные программы. Предметы и вопросы не смешиваются.",
+    title: "Выбери экзамен",
+    text: "ОРТ, SAT или IELTS — открой нужную программу.",
   },
   {
     index: "02",
-    title: "Пройдите тему",
-    text: "Сначала короткая теория, затем практика с разбором и проверка темы.",
+    title: "Изучи тему",
+    text: "Быстрая теория без воды и практика с подробным разбором.",
   },
   {
     index: "03",
-    title: "Сдайте пробный",
-    text: "10 вопросов и 15 минут на таймере. В конце — балл и разбор ошибок.",
+    title: "Сдай пробник",
+    text: "10 вопросов, 15 минут. Сразу покажем балл и разберём ошибки.",
   },
 ];
 
@@ -48,6 +52,7 @@ function countTopics(
 }
 
 export function HomeView() {
+<<<<<<< HEAD
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false); // Состояние для окна входа
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -56,6 +61,18 @@ export function HomeView() {
   useEffect(() => {
     const user = localStorage.getItem('click_user');
     if (user) setIsLoggedIn(true);
+=======
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const checkAuth = () => {
+    const user = localStorage.getItem("click_user");
+    setIsLoggedIn(Boolean(user));
+  };
+
+  useEffect(() => {
+    checkAuth();
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
   }, []);
 
   const hydrated = useProgressHydrated();
@@ -79,11 +96,12 @@ export function HomeView() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className="max-w-3xl"
       >
-        <p className="text-sm font-semibold tracking-widest text-teal">ПОДГОТОВКА</p>
+        <p className="text-sm font-semibold tracking-widest text-teal">ТРЕНАЖЁР ЭКЗАМЕНОВ</p>
         <h1 className="mt-3 text-4xl font-semibold leading-tight text-balance text-mist md:text-5xl">
-          Click — подготовка к экзаменам
+          Подготовка к ОРТ, SAT и IELTS
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-slate">
+<<<<<<< HEAD
           Отдельные треки для ОРТ, SAT и IELTS. У каждого экзамена свои предметы, темы и
           вопросы — без общего переключателя.
         </p>
@@ -112,6 +130,27 @@ export function HomeView() {
                 Войти
               </button>
             </>
+=======
+          Короткая теория, практика с разбором и пробные тесты на время. Выбирай свой экзамен и
+          начинай.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-4">
+          {isLoggedIn ? (
+            <Link
+              to="/profile"
+              className="rounded-full bg-teal px-8 py-3 font-semibold text-[#071120] shadow-[0_0_25px_rgba(100,255,218,0.35)] transition-transform hover:scale-105 active:scale-95"
+            >
+              Мой профиль
+            </Link>
+          ) : (
+            <button
+              onClick={() => setIsOnboardingOpen(true)}
+              className="rounded-full bg-teal px-8 py-3 font-semibold text-[#071120] shadow-[0_0_25px_rgba(100,255,218,0.35)] transition-transform hover:scale-105 active:scale-95"
+            >
+              Начать знакомство
+            </button>
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
           )}
         </div>
 
@@ -127,7 +166,11 @@ export function HomeView() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.12 + idx * 0.08 }}
               whileHover={{ y: -3 }}
+<<<<<<< HEAD
               className="rounded-2xl border border-line-dark px-3 py-3 transition-colors hover:border-teal/50"
+=======
+              className="rounded-2xl border border-white/15 bg-white/[0.05] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-xl transition-colors hover:border-teal/50 hover:bg-white/[0.09]"
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
             >
               <dt className="text-xs text-slate">{label}</dt>
               <dd className="mt-1 text-2xl font-semibold text-mist">{value}</dd>
@@ -157,7 +200,11 @@ export function HomeView() {
             examId={last.examId}
             subjectId={last.subjectId}
             topicId={last.topicId}
+<<<<<<< HEAD
             className="tap inline-flex h-11 items-center justify-center rounded-full bg-navy px-5 text-sm font-semibold text-mist transition-transform hover:scale-105 active:scale-95"
+=======
+            className="tap inline-flex h-11 items-center justify-center rounded-full border border-white/20 bg-white/10 px-6 text-sm font-semibold text-mist shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md transition-all hover:scale-105 hover:border-teal/50 hover:bg-teal hover:text-[#071120] active:scale-95"
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
           >
             К теме
           </TopicLink>
@@ -177,11 +224,16 @@ export function HomeView() {
               whileTap={{ scale: 0.99 }}
               className="h-full"
             >
+<<<<<<< HEAD
               <ExamLink
                 examId={exam.id}
                 className="card card-hover flex h-full flex-col p-6"
               >
                 <span className="flex size-12 items-center justify-center rounded-2xl bg-navy text-teal">
+=======
+              <ExamLink examId={exam.id} className="card card-hover flex h-full flex-col p-6">
+                <span className="flex size-12 items-center justify-center rounded-2xl border border-teal/30 bg-teal/10 text-teal shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
                   <Icon name={exam.icon} className="size-6" />
                 </span>
                 <p className="mt-5 text-xs font-semibold tracking-widest text-ok">ЭКЗАМЕН</p>
@@ -192,7 +244,11 @@ export function HomeView() {
                   {exam.subjects.map((subject) => (
                     <li
                       key={subject.id}
+<<<<<<< HEAD
                       className="rounded-full bg-line px-2.5 py-1 text-xs font-medium text-ink"
+=======
+                      className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-xs font-medium text-mist/90 backdrop-blur-md"
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
                     >
                       {subject.title}
                     </li>
@@ -202,8 +258,13 @@ export function HomeView() {
                   {topicsLabel(progress.total)}
                   {hydrated && progress.done > 0 ? ` · пройдено ${progress.done}` : ""}
                 </p>
+<<<<<<< HEAD
                 <span className="tap mt-5 inline-flex h-11 items-center justify-center rounded-full bg-teal px-5 text-sm font-semibold text-ink transition-transform duration-200 hover:brightness-105">
                   Начать подготовку
+=======
+                <span className="tap mt-4 inline-flex h-11 items-center justify-center rounded-full bg-teal px-5 text-sm font-semibold text-[#071120] shadow-[0_0_20px_rgba(100,255,218,0.25)] transition-transform duration-200 hover:brightness-105">
+                  Выбрать {exam.title}
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
                 </span>
               </ExamLink>
             </motion.div>
@@ -218,7 +279,11 @@ export function HomeView() {
         transition={{ duration: 0.5 }}
         className="card mt-10 p-6 md:p-8"
       >
+<<<<<<< HEAD
         <h2 className="text-xl font-semibold">Как устроена подготовка</h2>
+=======
+        <h2 className="text-xl font-semibold text-mist">Как это работает</h2>
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
         <ol className="mt-6 grid gap-6 md:grid-cols-3">
           {steps.map((step, index) => (
             <motion.li
@@ -240,6 +305,7 @@ export function HomeView() {
       <DevelopersSection />
 
       <p className="mt-8 text-sm text-slate">
+<<<<<<< HEAD
         Прогресс тем сохраняется в этом браузере.{" "}
         <Link to="/" className="text-teal">
           Click
@@ -250,6 +316,18 @@ export function HomeView() {
       {/* ВЫЗОВ ОКОН РЕГИСТРАЦИИ И ВХОДА */}
       <RegisterModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+=======
+        Прогресс сохраняется в этом браузере. Материалы созданы для тренировки.
+      </p>
+
+      <WelcomeOnboarding
+        forceOpen={isOnboardingOpen}
+        onClose={() => {
+          setIsOnboardingOpen(false);
+          checkAuth();
+        }}
+      />
+>>>>>>> e37ecbbe14a3315c2b5540e8d3d5a98b38340fdf
     </Page>
   );
 }

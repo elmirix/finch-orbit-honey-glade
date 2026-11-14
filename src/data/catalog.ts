@@ -19,9 +19,9 @@ export const exams: Record<ExamId, Exam> = {
   ort: {
     id: "ort",
     title: "ОРТ",
-    fullName: "Общереспубликанское тестирование",
+    fullName: "Поступление в вузы Кыргызстана",
     description:
-      "Отдельная программа к экзамену для поступления в вузы Кыргызстана. Здесь только математика, логика, чтение и грамматика ОРТ — без заданий SAT и IELTS.",
+      "Все разделы основного теста: от математики и аналогий до чтения и грамматики.",
     icon: "landmark",
     subjects: [ortMath, ortLogic, ortReading, ortGrammar],
     simulation: ortSimulation,
@@ -29,9 +29,9 @@ export const exams: Record<ExamId, Exam> = {
   sat: {
     id: "sat",
     title: "SAT",
-    fullName: "Scholastic Assessment Test",
+    fullName: "Поступление в зарубежные вузы",
     description:
-      "Свой трек американского SAT: чтение, письмо и язык, математика без калькулятора и с калькулятором. Темы и вопросы не пересекаются с ОРТ и IELTS.",
+      "Полный разбор американского теста: чтение, письмо и два блока математики.",
     icon: "graduation",
     subjects: [satReading, satWriting, satMathNc, satMathC],
     simulation: satSimulation,
@@ -39,9 +39,9 @@ export const exams: Record<ExamId, Exam> = {
   ielts: {
     id: "ielts",
     title: "IELTS",
-    fullName: "International English Language Testing System",
+    fullName: "Международный экзамен по английскому",
     description:
-      "Четыре модуля международного экзамена по английскому. Аудирование дано скриптами, письмо и говорение — через выбор сильной стратегии. Это не материалы ОРТ или SAT.",
+      "Разбор всех четырёх модулей: Listening, Reading, Writing и Speaking с готовыми стратегиями.",
     icon: "globe",
     subjects: [ieltsListening, ieltsReading, ieltsWriting, ieltsSpeaking],
     simulation: ieltsSimulation,
