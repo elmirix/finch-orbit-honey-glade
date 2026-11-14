@@ -1,3 +1,4 @@
+
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -28,6 +29,10 @@ const steps = [
     text: "10 вопросов и 15 минут на таймере. В конце — балл и разбор ошибок.",
   },
 ];
+
+// Единый класс для кнопок с эффектом матового стекла (Frosted Matte Glass)
+const MATTE_GLASS_BTN =
+  "border border-white/15 bg-white/[0.08] text-mist backdrop-blur-2xl shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition-all hover:border-teal/40 hover:bg-white/[0.14] hover:text-teal active:scale-95";
 
 function countTopics(
   examId: (typeof examList)[number]["id"],
@@ -64,8 +69,7 @@ export function HomeView() {
 
   const subjectCount = examList.reduce((sum, exam) => sum + exam.subjects.length, 0);
   const topicCount = examList.reduce(
-    (sum, exam) =>
-      sum + exam.subjects.reduce((inner, subject) => inner + subject.topics.length, 0),
+    (sum, exam) => sum + exam.subjects.reduce((inner, subject) => inner + subject.topics.length, 0),
     0,
   );
 
@@ -82,8 +86,8 @@ export function HomeView() {
           Click — подготовка к экзаменам
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-slate">
-          Отдельные треки для ОРТ, SAT и IELTS. У каждого экзамена свои предметы, темы и
-          вопросы — без общего переключателя.
+          Отдельные треки для ОРТ, SAT и IELTS. У каждого экзамена свои предметы, темы и вопросы —
+          без общего переключателя.
         </p>
 
         {/* ЛОГИКА КНОПОК НА ГЛАВНОЙ */}
@@ -98,7 +102,7 @@ export function HomeView() {
               </Link>
               <Link
                 to="/profile"
-                className="rounded-full border border-white/15 bg-white/[0.06] px-8 py-3 font-semibold text-mist backdrop-blur-xl transition-all hover:border-teal/50 hover:bg-white/[0.12] hover:text-teal"
+                className={`rounded-full px-8 py-3 font-semibold ${MATTE_GLASS_BTN}`}
               >
                 Мой профиль
               </Link>
@@ -126,7 +130,7 @@ export function HomeView() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.12 + idx * 0.08 }}
               whileHover={{ y: -3 }}
-              className="rounded-2xl border border-white/15 bg-white/[0.05] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-xl transition-colors hover:border-teal/50 hover:bg-white/[0.09]"
+              className="rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 backdrop-blur-2xl transition-colors hover:border-teal/40 hover:bg-white/[0.1]"
             >
               <dt className="text-xs text-slate">{label}</dt>
               <dd className="mt-1 text-2xl font-semibold text-mist">{value}</dd>
@@ -156,7 +160,7 @@ export function HomeView() {
             examId={last.examId}
             subjectId={last.subjectId}
             topicId={last.topicId}
-            className="tap inline-flex h-11 items-center justify-center rounded-full border border-white/20 bg-white/10 px-6 text-sm font-semibold text-mist shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md transition-all hover:scale-105 hover:border-teal/50 hover:bg-teal hover:text-[#071120] active:scale-95"
+            className={`tap inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-semibold hover:scale-105 ${MATTE_GLASS_BTN}`}
           >
             К теме
           </TopicLink>
@@ -177,7 +181,7 @@ export function HomeView() {
               className="h-full"
             >
               <ExamLink examId={exam.id} className="card card-hover flex h-full flex-col p-6">
-                <span className="flex size-12 items-center justify-center rounded-2xl border border-teal/30 bg-teal/10 text-teal shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                <span className="flex size-12 items-center justify-center rounded-2xl border border-teal/25 bg-teal/10 text-teal backdrop-blur-xl">
                   <Icon name={exam.icon} className="size-6" />
                 </span>
                 <p className="mt-5 text-xs font-semibold tracking-widest text-teal">ЭКЗАМЕН</p>
@@ -188,7 +192,7 @@ export function HomeView() {
                   {exam.subjects.map((subject) => (
                     <li
                       key={subject.id}
-                      className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-xs font-medium text-mist/90 backdrop-blur-md"
+                      className="rounded-full border border-white/12 bg-white/[0.08] px-3 py-1 text-xs font-medium text-mist/90 backdrop-blur-xl"
                     >
                       {subject.title}
                     </li>
@@ -234,7 +238,8 @@ export function HomeView() {
       </motion.section>
 
       <DevelopersSection />
-            {/* Вызов окна регистрации */}
+
+      {/* Вызов окна регистрации */}
       <RegisterModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </Page>
   );
